@@ -1,13 +1,22 @@
-import random as rd
-from functools import reduce
-import kcolor as kc
+"""
+ * -----------------------------------------------------------------------------*
+ * "THE BEER-WARE LICENSE" (Revision 42):                                       *
+ * Bloody Loki wrote this file. As long as you retain this notice you           *
+ * can do whatever you want with this stuff. If we meet some day, and you think *
+ * this stuff is worth it, you can buy me a beer in return                      *
+ *                                                      Léo Michel Claude Barré *
+ * -----------------------------------------------------------------------------*
+"""
 
 """
 TODO :
 - BETTER TILING (less 1x1)
-- change count
-- Pavage.kcolor(color_nb)
+- Pavage.count() -> area
 """
+
+import random as rd
+from functools import reduce
+import kcolor as kc
 
 
 
@@ -416,7 +425,7 @@ class Pavage: #-----------------------------------------------------------------
 		l = len(self._tiles)
 		tmp_count = {"T":[l,float(100)]}
 		for t in self._tiles:
-			key = t.get_form()
+			key = t.copy() ; key.pos = (0,0)
 			if key not in tmp_count:
 				tmp_count[key] = [0,0]
 			tmp_count[key][0] += 1

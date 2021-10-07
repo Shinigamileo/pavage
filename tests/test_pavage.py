@@ -18,7 +18,7 @@ if __name__=="__main__":
 			[0,0,1,1,1]]
 	t = Tile.from_form(form)
 	print(t.get_neighborslist())
-	sys.exit(0)
+	# sys.exit(0)
 
 	X = 25
 	Y = 30
@@ -102,6 +102,7 @@ if __name__=="__main__":
 	tiles = Pavage(X,Y,setile3,\
 				   fill=FILL,weighted=WEIGHTED,less_1x1=LESS1X1)
 	tiles.fancy_display()
+	print(tiles.count())
 
 	# print(Pavage.count(tiles))# for t in tiles:
 	# for t in tiles:
