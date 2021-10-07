@@ -58,8 +58,8 @@ class Color: #------------------------------------------------------------------
 
 
 class Kcoloration_state: #---------------------------------------------------------------
-	def __init__(self,color_nb,neighbors,colors, color_count
-		         back_state = None, back_choice = None):
+	def __init__(self,color_nb,neighbors,colors, color_count,
+		         back_state=None, back_choice=None):
 		self._color_nb = color_nb
 		self._neighbors = [n.copy() for n in neighbors]
 		self._colors = [c.copy() for c in colors]
@@ -72,8 +72,8 @@ class Kcoloration_state: #------------------------------------------------------
 
 	def new_state(self,choice,color):
 		new_state = Kcoloration_state(self._color_nb,self._neighbors,
-			                           self._colors, self._color_count
-			                           back_state = self, back_choice = choice)
+			                           self._colors, self._color_count,
+			                           back_state=self, back_choice=choice)
 		new_state._colors[choice] = color
 		new_state._color_count[color.get_color()] += 1
 		return new_state
