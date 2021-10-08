@@ -11,7 +11,6 @@
 """
 TODO :
 - BETTER TILING (less 1x1)
-- Pavage.count() -> area
 """
 
 import random as rd
@@ -45,31 +44,31 @@ class Tile: #-------------------------------------------------------------------
 			self._y_max = max(self._y_max,i[1])
 
 
-	@property                               #
-	def pos(self):                          #
-		return (self.x,self.y)              #
-	@pos.setter	                            #
-	def pos(self,value):                    #   pos = (x,y)
-		self.x=value[0]	                    #
-		self.y=value[1]	                    #   indexes : copy of _indexes
-	@property                               #
-	def indexes(self):                      #
-		return self._indexes.copy()         #
-	@property                               #   tlc (top-left corner)
-	def tlc(self):	                        #   brc (bottom-right corner)
-		return (self._x_min,self._y_min)    #       their relative position
-	@property                               #       to the (0,0) point
-	def brc(self):                          #
-		return (self._x_max,self._y_max)    #   height / width of the Tile
-	@property                               #
-	def height(self):                       #
-		return self._x_max - self._x_min +1 #   area : number of cases covered
-	@property                               #          by the Tile
-	def width(self):                        #
-		return self._y_max - self._y_min +1 #
-	@property                               #
-	def area(self):                         #
-		return len(self._indexes)           #
+	@property								#
+	def pos(self):							#
+		return (self.x,self.y)				#
+	@pos.setter								#
+	def pos(self,value):					#   pos = (x,y)
+		self.x=value[0]						#
+		self.y=value[1]						#   indexes : copy of _indexes
+	@property								#
+	def indexes(self):						#
+		return self._indexes.copy()			#
+	@property								#   tlc (top-left corner)
+	def tlc(self):							#   brc (bottom-right corner)
+		return (self._x_min,self._y_min)	#       their relative position
+	@property								#       to the (0,0) point
+	def brc(self):							#
+		return (self._x_max,self._y_max)	#   height / width of the Tile
+	@property								#
+	def height(self):						#
+		return self._x_max - self._x_min +1	#   area : number of cases covered
+	@property								#          by the Tile
+	def width(self):						#
+		return self._y_max - self._y_min +1	#
+	@property								#
+	def area(self):							#
+		return len(self._indexes)			#
 
 
 	def is_eligible(self, grid, pos):
@@ -175,6 +174,16 @@ class Tile: #-------------------------------------------------------------------
 		for i,j in self._indexes:
 			grid[i-self._x_min][j-self._y_min]=1
 		return grid
+
+
+	def get_key(self):
+		form = self.get_form()
+		key = ""
+		for l in form:
+			for c in l:
+				key += str(c)
+			key += "\n"
+		return key[:-1]
 
 
 	def __str__(self): # ex: {0,1}(1,2)
@@ -324,9 +333,9 @@ class Pavage: #-----------------------------------------------------------------
 			chosable_tiles = [] # where we'll stack the putable tiles
 			size_max = 0        # the size of the greatest putable tile
 			for t in tile_set:
-				eligible = (t.tlc[0]+case_x>=0)&(t.brc[0]+case_x<h) \
-						  &(t.tlc[1]+case_y>=0)&(t.brc[1]+case_y<w) \
-						  and reduce(lambda a,b : a&grid[case_x+b[0]][case_y+b[1]],t,1)
+				eligible = (t.tlc[0]+case_x>=0) and (t.brc[0]+case_x<h) \
+					   and (t.tlc[1]+case_y>=0) and (t.brc[1]+case_y<w) \
+					   and reduce(lambda a,b : a&grid[case_x+b[0]][case_y+b[1]],t,1)
 				tile_weight = eligible*t.rd_weight(weighted)
 
 				# the old tiles we already have in our list of chosable.
@@ -334,15 +343,15 @@ class Pavage: #-----------------------------------------------------------------
 				# - the 'fill' option is checked
 				#   & the new tile is greater than those before
 				#   & the new tile can be put
-				old_tiles = (      (1-(fill and (t.area>size_max) and eligible))\
-						     and (1-(less_1x1 and (size_max==1) and eligible))
-							)*chosable_tiles
+				old_tiles = (    (1-(fill and (t.area>size_max) and eligible))
+				             and (1-(less_1x1 and (size_max==1) and eligible))
+				            )*chosable_tiles
 				# the new tile we gathered for our list of chosable.
 				# we don't add it only if :
 				# - the 'fill' option is checked
 				#   & the new tile is smaller than those before
 				new_tiles = (1-(fill and (t.area<size_max)))         \
-							*[t for k in range(tile_weight)]
+				           *[t for k in range(tile_weight)]
 
 				chosable_tiles = old_tiles + new_tiles
 
@@ -366,23 +375,22 @@ class Pavage: #-----------------------------------------------------------------
 	#                      #
 	########################
 
-	@property              #
-	def h(self):           #   Protected variables 'get'
-		return self._h     #
-	@property              #
-	def height(self):      #   _h (height of the tiled grid):
-		return self.h      #      h , height
-	@property              #
-	def w(self):           #   _w (width of the tiled grid):
-		return self._w     #      w , width
-	@property              #
-	def width(self):       #   _tiles (list of tiles of tiling):
-		return self.w      #      tiles
-	@property              #
-	def tiles(self):       #
+	@property				#
+	def h(self):			#   Protected variables 'get'
+		return self._h		#
+	@property				#
+	def height(self):		#   _h (height of the tiled grid):
+		return self.h		#      h , height
+	@property				#
+	def w(self):			#   _w (width of the tiled grid):
+		return self._w		#      w , width
+	@property				#
+	def width(self):		#   _tiles (list of tiles of tiling):
+		return self.w		#      tiles
+	@property				#
+	def tiles(self):		#
 		return [t.copy() for t in self._tiles]
 		
-
 
 	def __iter__(self):
 		"""
@@ -413,25 +421,30 @@ class Pavage: #-----------------------------------------------------------------
 		return Pavage(self._h, self._w, self._tiles, dotiling = False)
 
 
-	def count(self):
+	def count(self,roundto=2):
 		"""
 		count the number of each form of Tiles in a pavage
-		and what portion they represent
-		╔═════╦═╗   ⎧  T  : ( 5 , 100.0% ) ⎫
-		║     ╠═╣ ∙ ⎭ 1x3 : ( 1 ,  20.0% ) ⎩
-		╠═╦═══╩═╣ ∙ ⎫ 2x3 : ( 1 ,  20.0% ) ⎧
-		╚═╩═════╝   ⎩ 1x1 : ( 3 ,  60.0% ) ⎭
+		and what portion they represent of all tile / of the total area
+		╔═════╦═╗   ⎧  T  : ( 5 , 100.0% , 100.0% ) ⎫
+		║     ╠═╣ ∙ ⎭ 1x3 : ( 1 ,  20.0% ,  25.0% ) ⎩
+		╠═╦═══╩═╣ ∙ ⎫ 2x3 : ( 1 ,  20.0% ,  50.0% ) ⎧
+		╚═╩═════╝   ⎩ 1x1 : ( 3 ,  60.0% ,  25.0% ) ⎭
 		"""
 		l = len(self._tiles)
-		tmp_count = {"T":[l,float(100)]}
+		tmp_count = {"T":[l,float(100),float(100)]}
 		for t in self._tiles:
-			key = t.copy() ; key.pos = (0,0)
+			key = t.get_key()
 			if key not in tmp_count:
-				tmp_count[key] = [0,0]
+				tmp_count[key] = [0,0,0]
 			tmp_count[key][0] += 1
-			tmp_count[key][1]  = tmp_count[key][0]/l*100
+			tmp_count[key][1]  = round(tmp_count[key][0]/l*100,
+				                        roundto)
+			tmp_count[key][2]  = round(tmp_count[key][0]*t.area/(self._h*self._w)*100,
+				                        roundto)
 
-		count = {k:(tmp_count[k][0],tmp_count[k][1]) for k in tmp_count}
+		count = {k:tuple(tmp_count[k][0],
+			             tmp_count[k][1],
+			             tmp_count[k][2]) for k in tmp_count}
 		return count
 
 
@@ -579,7 +592,7 @@ class Pavage: #-----------------------------------------------------------------
 	######################################
 
 	def from_input(input,format="json"):
-		h = 0; w = 0; tiles = []
+		h = None; w = None; tiles = None
 		if format == "json":
 			h = input["size"]["height"]
 			w = input["size"]["width" ]

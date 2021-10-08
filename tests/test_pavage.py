@@ -20,7 +20,7 @@ if __name__=="__main__":
 	print(t.get_neighborslist())
 	# sys.exit(0)
 
-	X = 25
+	X = 200
 	Y = 30
 	TILE_LIMIT = 2
 	AREA_LIMIT = float('inf')
@@ -102,7 +102,9 @@ if __name__=="__main__":
 	tiles = Pavage(X,Y,setile3,\
 				   fill=FILL,weighted=WEIGHTED,less_1x1=LESS1X1)
 	tiles.fancy_display()
-	print(tiles.count())
+	count = tiles.count()
+	for index in count:
+		print(str(index) + "\t: " + str(count[index]),end="\n\n")
 
 	# print(Pavage.count(tiles))# for t in tiles:
 	# for t in tiles:
