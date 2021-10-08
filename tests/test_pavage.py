@@ -20,7 +20,7 @@ if __name__=="__main__":
 	print(t.get_neighborslist())
 	# sys.exit(0)
 
-	X = 200
+	X = 20
 	Y = 30
 	TILE_LIMIT = 2
 	AREA_LIMIT = float('inf')
@@ -89,7 +89,9 @@ if __name__=="__main__":
 	# 		print(l)
 	# 	print(",")
 	# print("-------------------------")
-	setile3=Tile.set_for_pavage(forms)
+
+	# setile3=Tile.set_for_pavage(forms)
+	setile3=Tile.rectangle_range(3)
 	# for t in setile3:
 	# 	f = t.get_form()
 	# 	for l in f:
@@ -100,7 +102,7 @@ if __name__=="__main__":
 	# setile.append(Tile.from_form(form))
 
 	tiles = Pavage(X,Y,setile3,\
-				   fill=FILL,weighted=WEIGHTED,less_1x1=LESS1X1)
+				   fill=FILL,weighted=WEIGHTED,less1x1=LESS1X1)
 	tiles.fancy_display()
 	count = tiles.count()
 	for index in count:

@@ -62,7 +62,7 @@ class Tile: #-------------------------------------------------------------------
 		return (self._x_max,self._y_max)	#   height / width of the Tile
 	@property								#
 	def height(self):						#
-		return self._x_max - self._x_min +1	#   area : number of cases covered
+		return self._x_max - self._x_min +1	#   area : number of cells covered
 	@property								#          by the Tile
 	def width(self):						#
 		return self._y_max - self._y_min +1	#
@@ -103,7 +103,7 @@ class Tile: #-------------------------------------------------------------------
 
 	def is_connected(self): # TODO
 		"""
-		Returns True if the Tile is connected, meaning that every case
+		Returns True if the Tile is connected, meaning that every cell
 		of the tile is connected to the others.
 		┌─┐                ┌─┐              ┌─┐
 		│ └─┐ : True   ;   └─┘ : True   ;   └─┼─┐ : False
@@ -142,7 +142,7 @@ class Tile: #-------------------------------------------------------------------
 		# placing the indexes relatively to the new (0,0)
 		new_indexes = []
 		for i,j in self._indexes:
-			relative_x = i - new_x0 # relative position of the case (i,j)
+			relative_x = i - new_x0 # relative position of the cell (i,j)
 			relative_y = j - new_y0 # from the new (0,0), prior to rotation
 			new_x = (2*(1-b1  )-1)*((1-b0)*relative_x + b0*relative_y)# 00: x, y 01: y,-x
 			new_y = (2*(1-b0x1)-1)*((1-b0)*relative_y + b0*relative_x)# 10:-x,-y 11:-y, x
@@ -305,7 +305,7 @@ class Pavage: #-----------------------------------------------------------------
 	def __init__(self, h, w, tile_set,
 			   	fill     = False , # if wanna always put the biggest Tile possible
 			   	weighted = False , # if the bigger the Tile, the better the chances
-			   	less_1x1 = False,  # if try to minimise number of 1x1
+			   	less1x1  = False,  # if try to minimise number of 1x1
 			   	dotiling = True,   # if the init DOES require a tiling
 			   	):
 
@@ -316,57 +316,62 @@ class Pavage: #-----------------------------------------------------------------
 			self._tiles = [t.copy() for t in tile_set]
 			return
 		# else... prepare for tiling !!!
-		unoccupied_cases = set(range(h*w))  # set of all empty cases
-		grid = [[True for j in range(w)] for i in range(h)] # True : empty case
+		unoccupied_cells = set(range(h*w))  # set of all empty cells
+		grid = [[True for j in range(w)] for i in range(h)] # True : empty cell
+		not1x1count = less1x1 * h * w
 
-		while(unoccupied_cases):
+		while(unoccupied_cells):
 			######################################
-			# randomly choose an unoccupied case #
+			# randomly choose an unoccupied cell #
 			######################################
-			case = rd.choice(list(unoccupied_cases))
-			case_x = case//w
-			case_y = case%w 
-
-			####################################
-			# generate a list of putable tiles #
-			####################################
 			chosable_tiles = [] # where we'll stack the putable tiles
-			size_max = 0        # the size of the greatest putable tile
-			for t in tile_set:
-				eligible = (t.tlc[0]+case_x>=0) and (t.brc[0]+case_x<h) \
-					   and (t.tlc[1]+case_y>=0) and (t.brc[1]+case_y<w) \
-					   and reduce(lambda a,b : a&grid[case_x+b[0]][case_y+b[1]],t,1)
-				tile_weight = eligible*t.rd_weight(weighted)
+			cell_x = None ; cell_y = None
 
-				# the old tiles we already have in our list of chosable.
-				# we don't keep them only if :
-				# - the 'fill' option is checked
-				#   & the new tile is greater than those before
-				#   & the new tile can be put
-				old_tiles = (    (1-(fill and (t.area>size_max) and eligible))
-				             and (1-(less_1x1 and (size_max==1) and eligible))
-				            )*chosable_tiles
-				# the new tile we gathered for our list of chosable.
-				# we don't add it only if :
-				# - the 'fill' option is checked
-				#   & the new tile is smaller than those before
-				new_tiles = (1-(fill and (t.area<size_max)))         \
-				           *[t for k in range(tile_weight)]
+			while not chosable_tiles:
+				cell = rd.choice(list(unoccupied_cells))
+				cell_x = cell//w
+				cell_y = cell%w 
 
-				chosable_tiles = old_tiles + new_tiles
+				####################################
+				# generate a list of putable tiles #
+				####################################
+				size_max = 0        # the size of the greatest putable tile
+				for t in tile_set:
+					eligible = (t.tlc[0]+cell_x>=0) and (t.brc[0]+cell_x<h) \
+						   and (t.tlc[1]+cell_y>=0) and (t.brc[1]+cell_y<w) \
+						   and reduce(lambda a,b : a&grid[cell_x+b[0]][cell_y+b[1]],t,1)
+					tile_weight = eligible*t.rd_weight(weighted)
 
-				size_max = max(size_max,t.area*eligible)
+					# the old tiles we already have in our list of chosable.
+					# we don't keep them only if :
+					# - the 'fill' option is checked
+					#   & the new tile is greater than those before
+					#   & the new tile can be put
+					old_tiles = (    (1-(fill and (t.area>size_max) and eligible))
+					             and (1-(less1x1 and (size_max==1) and eligible))
+					            )*chosable_tiles
+					# the new tile we gathered for our list of chosable.
+					# we don't add it only if :
+					# - the 'fill' option is checked
+					#   & the new tile is smaller than those before
+					new_tiles = (    (1-(fill and (t.area<size_max)))
+						         and (1-(bool(not1x1count) and (t.area==1)))
+					            )*[t for k in range(tile_weight)]
 
+					chosable_tiles = old_tiles + new_tiles
+
+					size_max = max(size_max,t.area*eligible)
+				not1x1count = max( not1x1count - (not chosable_tiles), 0)
 			#########################################################
 			# randomly choose a type of tile in the generated list, #
-			# fill the grid and delete the now occupied case        #
+			# fill the grid and delete the now occupied cell        #
 			#########################################################
 			tile = rd.choice(chosable_tiles).copy()
-			tile.pos = (case_x , case_y)
+			tile.pos = (cell_x , cell_y)
 			self._tiles.append(tile)
 			for i in tile:
-				grid[case_x+i[0]][case_y+i[1]] = False
-				unoccupied_cases.remove((case_x+i[0])*w+(case_y+i[1]))
+				grid[cell_x+i[0]][cell_y+i[1]] = False
+				unoccupied_cells.remove((cell_x+i[0])*w+(cell_y+i[1]))
 
 
 	########################
@@ -442,9 +447,9 @@ class Pavage: #-----------------------------------------------------------------
 			tmp_count[key][2]  = round(tmp_count[key][0]*t.area/(self._h*self._w)*100,
 				                        roundto)
 
-		count = {k:tuple(tmp_count[k][0],
-			             tmp_count[k][1],
-			             tmp_count[k][2]) for k in tmp_count}
+		count = {k:(tmp_count[k][0],
+			        tmp_count[k][1],
+			        tmp_count[k][2]) for k in tmp_count}
 		return count
 
 
