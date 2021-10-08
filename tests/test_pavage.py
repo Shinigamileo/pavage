@@ -17,15 +17,19 @@ if __name__=="__main__":
 			[1,0,0,1],
 			[0,0,1,1,1]]
 	t = Tile.from_form(form)
-	print(t.get_neighborslist())
-	# sys.exit(0)
+	print(t.graph_neighborslist())
+	j = t.json()
+	print(j)
+	print(t)
+	print(Tile.from_json(j))
+	sys.exit(0)
 
 	X = 20
 	Y = 30
 	TILE_LIMIT = 2
 	AREA_LIMIT = float('inf')
-	FILL = True
-	WEIGHTED = False
+	FILL = False
+	WEIGHTED = True
 	LESS1X1 = True
 
 	forms = [([[0,1,1,1],

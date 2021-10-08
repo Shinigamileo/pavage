@@ -10,7 +10,8 @@
 
 """
 TODO :
-- BETTER TILING (less 1x1)
+- Tile.is_connected()
+- Pavage.coloration()
 """
 
 import random as rd
@@ -21,7 +22,7 @@ import kcolor as kc
 
 class Tile: #----------------------------------------------------------------------------
 	"""
-	A rectangle of height h and width w that can be used for a 'pavage'.
+	A tile fo some form (given by relative indexes) that can be used for a 'pavage'.
 	(x,y) are the coordinates of its top-left corner.
 	"""
 	def __init__(self, indexes,\
@@ -43,6 +44,12 @@ class Tile: #-------------------------------------------------------------------
 			self._y_min = min(self._y_min,i[1])
 			self._y_max = max(self._y_max,i[1])
 
+
+	###########################
+	#                         #
+	# BUILT-IN AND PROPERTIES #
+	#                         #
+	###########################
 
 	@property								#
 	def pos(self):							#
@@ -71,6 +78,65 @@ class Tile: #-------------------------------------------------------------------
 		return len(self._indexes)			#
 
 
+	def __iter__(self):            # used to iter the indexes of the tile
+		return Tile.Iterator(self) # for i in tile -> for i in tile._indexes
+	class Iterator:
+		def __init__(self,t):
+			self._t = t
+			self._index = 0
+		def __next__(self):
+			try:
+				res = self._t._indexes[self._index]
+				self._index+=1
+				return res
+			except (IndexError):
+				raise StopIteration
+
+
+	def __str__(self): # ex: {0,1}(1,2)
+		return "{"+str(self.x)+";"+str(self.y)+"}"+str(self._indexes)
+
+
+	def __eq__(self,t):
+		return self.x == t.x \
+		     and self.y == t.y \
+		     and set(self._indexes) == set(t._indexes)
+
+
+	def __hash__(self):
+		return hash((self.x,self.y) + tuple(set(self._indexes)))
+
+
+	##################
+	#                #
+	#     OTHERS     #
+	#                #
+	##################
+
+	def copy(self):
+		return Tile(self._indexes, (self.x, self.y))
+
+
+	def json(self):
+		return {"pos"    : (self.x,self.y),
+		        "indexes": [list(i) for i in self._indexes]
+		       }
+
+
+	def graph_neighborslist(self):
+		"""
+		Give the associated graph of the object
+		under the form of a neighbors'list
+		"""
+		neighlist = [set() for t in self._indexes]
+		dict_indexes = {self._indexes[i]:i for i in range(len(self._indexes))}
+		for ci,cj in self._indexes:
+			for di,dj in [(0,1),(1,0),(0,-1),(-1,0)]:
+				if (ci+di,cj+dj) in dict_indexes:
+					neighlist[dict_indexes[(ci,cj)]].add(dict_indexes[(ci+di,cj+dj)])
+		return neighlist
+
+
 	def is_eligible(self, grid, pos):
 		"""
 		Check if the Tile can be put in a more or less filled grid at pos pos
@@ -82,23 +148,13 @@ class Tile: #-------------------------------------------------------------------
 		   and reduce(lambda a,b : a&grid[x+b[0]][y+b[1]],self._indexes,True)
 
 
-	def rd_weight(self,weighted=False): # the chances to choose this tile
+	def rd_weight(self,weighted=False):
+		"""
+		Give the wieght of the Tile.
+		Can be used to make some Tiles more valuable than others.
+		"""
 		return 1-weighted\
 				+ weighted*(self.area*self.area*self.area)
-
-
-	def copy(self):
-		return Tile(self._indexes, (self.x, self.y))
-
-
-	def get_neighborslist(self):
-		neighlist = [set() for t in self._indexes]
-		dict_indexes = {self._indexes[i]:i for i in range(len(self._indexes))}
-		for ci,cj in self._indexes:
-			for di,dj in [(0,1),(1,0),(0,-1),(-1,0)]:
-				if (ci+di,cj+dj) in dict_indexes:
-					neighlist[dict_indexes[(ci,cj)]].add(dict_indexes[(ci+di,cj+dj)])
-		return neighlist
 
 
 	def is_connected(self): # TODO
@@ -109,7 +165,7 @@ class Tile: #-------------------------------------------------------------------
 		│ └─┐ : True   ;   └─┘ : True   ;   └─┼─┐ : False
 		└───┘                                 └─┘
 		"""
-		neighlist = self.get_neighborslist()
+		neighlist = self.graph_neighborslist()
 		group = set()
 		return None
 
@@ -123,10 +179,10 @@ class Tile: #-------------------------------------------------------------------
 		└───┘   └─┘       └─┘   └───┘
 		(Note : only multiples of )
 		"""
-		a = (a//90)%4
-		b0 = a&1
-		b1 = (a>>1)&1
-		b0x1 = b0^b1
+		a = (a//90)%4 # a ≡   0 -> 0 -> 00
+		b0 = a&1      #      90 -> 1 -> 01
+		b1 = (a>>1)&1 #     180 -> 2 -> 10
+		b0x1 = b0^b1  #     270 -> 3 -> 11
 		# looking for new (0,0)
 		new_x0 = (1-b0)*((1-b1)*self._x_min + b1*self._x_max)\
 				+ b0*((1-b1)*self._x_min + b1*self._x_max)
@@ -151,17 +207,6 @@ class Tile: #-------------------------------------------------------------------
 		return self
 
 
-	def output(self,format="json"):
-		output = None
-		if format == "json":
-			output = {"pos"    : (self.x,self.y),
-					  "indexes": self._indexes
-					 }
-		else:
-			raise Exception
-		return output
-
-
 	def get_form(self):
 		"""
 		Code the Tile's form as a boolean grid
@@ -177,6 +222,10 @@ class Tile: #-------------------------------------------------------------------
 
 
 	def get_key(self):
+		"""
+		Create a key associated to the type of tile.
+		Used for dictionnaries.
+		"""
 		form = self.get_form()
 		key = ""
 		for l in form:
@@ -186,48 +235,25 @@ class Tile: #-------------------------------------------------------------------
 		return key[:-1]
 
 
-	def __str__(self): # ex: {0,1}(1,2)
-		return "{"+str(self.x)+";"+str(self.y)+"}"+str(self._indexes)
-
-
-	def __iter__(self):
-		"""
-		used to iter the indexes of the tile
-		for i in tile -> for i in tile._indexes
-		"""
-		return Tile.Iterator(self)
-	class Iterator:
-		def __init__(self,t):
-			self._t = t
-			self._index = 0
-		def __next__(self):
-			try:
-				res = self._t._indexes[self._index]
-				self._index+=1
-				return res
-			except (IndexError):
-				raise StopIteration
-
-
-	def __eq__(self,t):
-		return self.x == t.x \
-		     and self.y == t.y \
-		     and set(self._indexes) == set(t._indexes)
-
-
-	def __hash__(self):
-		return hash((self.x,self.y) + tuple(set(self._indexes)))
-
-
 	####################################
 	#                                  #
 	#    SPECIAL TILE(S) GENERATORS    #
 	#                                  #
 	####################################
 
+	def rectangle(h,w,pos=(0,0)):
+		"""Generate a rectangular h*w Tile"""
+		return Tile([(i,j) for i in range(h) for j in range(w)],pos)
+
+
+	def square(c,pos=(0,0)):
+		"""Generate a square c*c Tile"""
+		return Tile.rectangle(c,c,pos)
+
+
 	def from_form(grid,pos=(0,0)):
 		"""
-		Use a boolean grid to code a Tile
+		Use a boolean grid to generate a Tile
 		[[0,0],     ┌─┐ ┏                ┓
 		 [0,1], ∙ ┌─┘ │ ┃ (0,0) , (1,-1) ┃
 		 [1,1], ∙ │ ┌─┘ ┃ (1,0) , (2,-1) ┃
@@ -248,38 +274,35 @@ class Tile: #-------------------------------------------------------------------
 		return Tile(indexes,pos)
 
 
-	def from_input(input,format="json"):
-		"""
-		construct a Tile according to input in format format
-		"""
-		pos = None
-		indexes = None
-		if format == "json":
-			pos = input["pos"]
-			indexes = input["indexes"]
-		else:
-			raise Exception
-		return Tile(indexes,pos)
-
-
-	def rectangle(h,w,pos=(0,0)):
-		return Tile([(i,j) for i in range(h) for j in range(w)],pos)
-
-
-	def square(c,pos=(0,0)):
-		return Tile.rectangle(c,c,pos)
+	def from_json(jsondict):
+		return Tile([tuple(i) for i in jsondict["indexes"]],jsondict["pos"])
 
 
 	def rectangle_range(b,area_max=float('inf')):
+		"""
+		Generate a list of all rectangular Tiles
+		which sizes are ≤ b
+		  and area is ≤ area_max
+		"""
 		return [Tile.rectangle(i,j) for i in range(1,b+1) for j in range(1,b+1)
 				if i*j < area_max]
 
 
 	def square_range(b):
+		"""
+		Generate a list of all square Tiles
+		which size is ≤ b
+		"""
 		return Tile.rectangle_range(b)
 
 
 	def set_for_pavage(formnrot):
+		"""
+		Generate a list of Tiles given of list of couples with :
+		- their form (in a boolean grid)
+		- if they can be rotated
+		This fuction is often used to generate a list for a Pavage object
+		"""
 		s = set()
 		for form,rotate in formnrot:
 			t0 = Tile.from_form(form)
@@ -321,13 +344,13 @@ class Pavage: #-----------------------------------------------------------------
 		not1x1count = less1x1 * h * w
 
 		while(unoccupied_cells):
-			######################################
-			# randomly choose an unoccupied cell #
-			######################################
 			chosable_tiles = [] # where we'll stack the putable tiles
-			cell_x = None ; cell_y = None
+			cell_x = None ; cell_y = None # coordinates of the chosen cell
 
 			while not chosable_tiles:
+				######################################
+				# randomly choose an unoccupied cell #
+				######################################
 				cell = rd.choice(list(unoccupied_cells))
 				cell_x = cell//w
 				cell_y = cell%w 
@@ -347,6 +370,10 @@ class Pavage: #-----------------------------------------------------------------
 					# - the 'fill' option is checked
 					#   & the new tile is greater than those before
 					#   & the new tile can be put
+					# or
+					# - the 'less1x1' option is checked
+					#   & the old tiles are of area 1 (= are 1x1 squares)
+					#   & the new tile can be put
 					old_tiles = (    (1-(fill and (t.area>size_max) and eligible))
 					             and (1-(less1x1 and (size_max==1) and eligible))
 					            )*chosable_tiles
@@ -354,6 +381,9 @@ class Pavage: #-----------------------------------------------------------------
 					# we don't add it only if :
 					# - the 'fill' option is checked
 					#   & the new tile is smaller than those before
+					# or
+					# - the 'less1x1' option is checked and not1x1count is greater than 0
+					#   & the new tile is of area 1 (= is a 1x1 square)
 					new_tiles = (    (1-(fill and (t.area<size_max)))
 						         and (1-(bool(not1x1count) and (t.area==1)))
 					            )*[t for k in range(tile_weight)]
@@ -374,11 +404,11 @@ class Pavage: #-----------------------------------------------------------------
 				unoccupied_cells.remove((cell_x+i[0])*w+(cell_y+i[1]))
 
 
-	########################
-	#                      #
-	#    ACCESS METHODS    #
-	#                      #
-	########################
+	###########################
+	#                         #
+	# BUILT-IN AND PROPERTIES #
+	#                         #
+	###########################
 
 	@property				#
 	def h(self):			#   Protected variables 'get'
@@ -416,14 +446,43 @@ class Pavage: #-----------------------------------------------------------------
 				raise StopIteration
 
 
-	###############
-	#             #
-	#    OTHER    #
-	#             #
-	###############
+	##################
+	#                #
+	#     OTHERS     #
+	#                #
+	##################
 
 	def copy(self):
 		return Pavage(self._h, self._w, self._tiles, dotiling = False)
+
+
+	def json(self):
+		output = {}
+		output["size"] = {"height" : self._h,
+						  "width"  : self._w
+						 }
+		output["tiles"]=[]
+		for t in self._tiles:
+			output["tiles"].append(t.json())
+		return output
+
+
+	def graph_neighborslist(self):
+		"""
+		Give the associated graph of the object
+		under the form of a neighbors'list
+		"""
+		grid = self.get_numbered_grid()
+		neighlist = [set() for i in range(len(self._tiles))]
+		for i in range(self._h-1):
+			for j in range(self._w-1):
+				neighlist[grid[ i ][ j ]].add(grid[i+1][ j ])
+				neighlist[grid[i+1][ j ]].add(grid[ i ][ j ])
+				neighlist[grid[ i ][ j ]].add(grid[ i ][j+1])
+				neighlist[grid[ i ][j+1]].add(grid[ i ][ j ])
+		for i in range(len(neighlist)):
+			neighlist[i].remove(i)
+		return neighlist
 
 
 	def count(self,roundto=2):
@@ -451,32 +510,6 @@ class Pavage: #-----------------------------------------------------------------
 			        tmp_count[k][1],
 			        tmp_count[k][2]) for k in tmp_count}
 		return count
-
-
-	def get_numbered_grid(self):
-		grid = [[None for j in range(self._w)] for i in range(self._h)]
-		for i in range(len(self._tiles)):
-			for j in self._tiles[i]:
-				grid[self._tiles[i].x+j[0]][self._tiles[i].y+j[1]]=i
-		return grid
-
-
-	def get_neighborslist(self):
-		"""
-		Give the list of neighbors of the pavage
-		With it, the pavage can be represented by a graph
-		"""
-		grid = self.get_numbered_grid()
-		neighlist = [set() for i in range(len(self._tiles))]
-		for i in range(self._h-1):
-			for j in range(self._w-1):
-				neighlist[grid[ i ][ j ]].add(grid[i+1][ j ])
-				neighlist[grid[i+1][ j ]].add(grid[ i ][ j ])
-				neighlist[grid[ i ][ j ]].add(grid[ i ][j+1])
-				neighlist[grid[ i ][j+1]].add(grid[ i ][ j ])
-		for i in range(len(neighlist)):
-			neighlist[i].remove(i)
-		return neighlist
 
 
 	def get_coloration(self,color_nb=4):
@@ -575,19 +608,16 @@ class Pavage: #-----------------------------------------------------------------
 		# done ! (￣^￣)ゞ
 
 
-	def output(self,format="json"):
-		output = None
-		if format == "json":
-			output = {}
-			output["size"] = {"height" : self._h,
-							  "width"  : self._w
-							 }
-			output["tiles"]=[]
-			for t in self._tiles:
-				output["tiles"].append(t.output("json"))
-		else:
-			raise Exception
-		return output
+	def get_numbered_grid(self):
+		"""
+		Generate a height*width grid in which each cell contains
+		the index of the put Tile in the tiles
+		"""
+		grid = [[None for j in range(self._w)] for i in range(self._h)]
+		for i in range(len(self._tiles)):
+			for j in self._tiles[i]:
+				grid[self._tiles[i].x+j[0]][self._tiles[i].y+j[1]]=i
+		return grid
 
 
 	######################################
@@ -596,14 +626,10 @@ class Pavage: #-----------------------------------------------------------------
 	#                                    #
 	######################################
 
-	def from_input(input,format="json"):
-		h = None; w = None; tiles = None
-		if format == "json":
-			h = input["size"]["height"]
-			w = input["size"]["width" ]
-			tiles = [Tile.from_input(d,format="json") for d in input["tiles"]]
-		else:
-			raise Exception
-		return Pavage(h,w,tiles,dotiling=False)
+	def from_json(jsondict):
+		return Pavage(jsondict["size"]["height"],
+			          jsondict["size"]["width" ],
+			          [Tile.from_json(d) for d in jsondict["tiles"]],
+			          dotiling=False)
 
 # {\Pavage}------------------------------------------------------------------------------
