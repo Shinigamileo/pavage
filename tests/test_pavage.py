@@ -12,20 +12,20 @@ import sys
 
 if __name__=="__main__":
 
-	form = [[0,1,1,1],
-		 	[1,1,0,1],
-			[1,0,0,1],
-			[0,0,1,1,1]]
-	t = Tile.from_form(form)
-	print(t.graph_neighborslist())
-	j = t.json()
-	print(j)
-	print(t)
-	print(Tile.from_json(j))
-	sys.exit(0)
+	# form = [[0,1,1,1],
+	# 	 	[1,1,0,1],
+	# 		[1,0,0,1],
+	# 		[0,0,1,1,1]]
+	# t = Tile.from_form(form)
+	# print(t.graph_neighborslist())
+	# j = t.json()
+	# print(j)
+	# print(t)
+	# print(Tile.from_json(j))
+	# sys.exit(0)
 
-	X = 20
-	Y = 30
+	X = 4
+	Y = 4
 	TILE_LIMIT = 2
 	AREA_LIMIT = float('inf')
 	FILL = False
@@ -94,8 +94,8 @@ if __name__=="__main__":
 	# 	print(",")
 	# print("-------------------------")
 
-	# setile3=Tile.set_for_pavage(forms)
-	setile3=Tile.rectangle_range(3)
+	setile3=Tile.set_for_pavage(forms)
+	# setile3=Tile.rectangle_range(3)
 	# for t in setile3:
 	# 	f = t.get_form()
 	# 	for l in f:
@@ -108,9 +108,13 @@ if __name__=="__main__":
 	tiles = Pavage(X,Y,setile3,\
 				   fill=FILL,weighted=WEIGHTED,less1x1=LESS1X1)
 	tiles.fancy_display()
-	count = tiles.count()
-	for index in count:
-		print(str(index) + "\t: " + str(count[index]),end="\n\n")
+	# count = tiles.count()
+	# for index in count:
+	# 	print(str(index) + "\t: " + str(count[index]),end="\n\n")
+
+	colo = tiles.get_coloration(4)
+	for i in range(len(tiles.tiles)):
+		print(str(tiles.tiles[i]) + "\n\t -> " + str(colo[i]))
 
 	# print(Pavage.count(tiles))# for t in tiles:
 	# for t in tiles:

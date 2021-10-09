@@ -481,7 +481,7 @@ class Pavage: #-----------------------------------------------------------------
 				neighlist[grid[ i ][ j ]].add(grid[ i ][j+1])
 				neighlist[grid[ i ][j+1]].add(grid[ i ][ j ])
 		for i in range(len(neighlist)):
-			neighlist[i].remove(i)
+			neighlist[i] -= {i}
 		return neighlist
 
 
@@ -521,8 +521,7 @@ class Pavage: #-----------------------------------------------------------------
 		If color_nb < 4, of if some tiles aren't connected,
 		there can be no viable solution.
 		"""
-		# COMING SOON
-		return None
+		return kc.coloration(self.graph_neighborslist(),color_nb)
 
 
 	def fancy_display(self):

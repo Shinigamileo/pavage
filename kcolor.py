@@ -64,7 +64,7 @@ class Color: #------------------------------------------------------------------
 		return Color( range(color_nb) )
 
 	def monochrome(color):
-		return Color( list(color) )
+		return Color( [color] )
 
 	def intersection(c1,c2):
 		return Color( c1._colors & c2._colors )
@@ -86,6 +86,13 @@ class _Kcoloration_state: #-----------------------------------------------------
 		self._back_state = back_state
 		self._back_node = back_node
 
+	@property
+	def colors(self):
+		return self._colors.copy()
+	@property
+	def color_count(self):
+		return self._color_count.copy()	
+
 	def is_solved(self):
 		return reduce( lambda a,b : a and b.is_colored(), self._colors, True  )
 
@@ -96,38 +103,47 @@ class _Kcoloration_state: #-----------------------------------------------------
 		# used by new_state, returns the node to select a color from
 		# as for now : choose a node with the smallest amount of chosable colors
 		chosable_nodes = []
-		min_color_nb = float('inf')
-		for node in range(self._node_nb):
-			node_color_nb = self._colors[node].color_nb
-			chosable_nodes = (min_color_nb <= node_color_nb)*chosable_nodes \
-			                + (min_color_nb >= node_color_nb)*[node]
-			min_color_nb = min( min_color_nb , node_color_nb )
+		# min_color_nb = float('inf')
+		# for node in range(self._node_nb):
+		# 	node_color_nb = self._colors[node].color_nb
+		# 	chosable_nodes = (min_color_nb <= node_color_nb)*chosable_nodes \
+		# 	                + (min_color_nb >= node_color_nb)*[node]
+		# 	min_color_nb = min( min_color_nb , node_color_nb )
+		chosable_nodes = list(range(self._node_nb))
+		# print(chosable_nodes)
 		return rd.choice(chosable_nodes)
 
 
 	def _random_color(self,node):
 		# used by new_state, returns a color for the chosen node
 		# as for now : choose a color that is the least present
-		chosable_color = []
-		mini = float('inf')
-		for c in self._colors[node]:
-			chosable_color = (mini <= self._color_count[c])*chosable_color \
-			                + (mini >= self._color_count[c])*[Color.monochrome(c)]
-			mini = min(mini,self._color_count[c])
-		return rd.choice(chosable_color)
+		chosable_colors = []
+		# mini = float('inf')
+		# for c in self._colors[node]:
+		# 	chosable_colors = (mini <= self._color_count[c])*chosable_colors \
+		# 	                 + (mini >= self._color_count[c])*[Color.monochrome(c)]
+		# 	mini = min(mini,self._color_count[c])
+		chosable_colors = [Color.monochrome(c) for c in self._colors[node]._colors]
+		# print([c.get_color() for c in chosable_colors])
+		return rd.choice(chosable_colors)
 
 
-	def new_state(self,node,color):
-		less1x1 = self._random_node()
+	def new_state(self):
+		node  = self._random_node()
+		color = self._random_color(node)
 		new_state = _Kcoloration_state(self._color_nb,self._neighbors,
 			                           self._colors, self._color_count,
 			                           back_state=self, back_node=node)
-		new_state._colors[node] = self._random_color(node)
+		new_state._colors[node] = color
 		new_state._color_count[color.get_color()] += 1
+		# print("MAKING NEW STATE :")
+		# print("\tnode  : " + str(node))
+		# print("\tcolor : " + str(color.get_color()))
 		return new_state
 
 
 	def backtrack(self):
+		print("BACKTRACKING")
 		if self._back_state:
 			self._back_state._colors[self._back_node].remove_colors(
 			                                            self._colors[self._back_node])
@@ -142,14 +158,15 @@ class _Kcoloration_state: #-----------------------------------------------------
 		"""
 		node_colors_at_beginning = self._colors[node].copy()
 		# First : is the node already colored ?
-		if self._colors[node].is_colored():
-			return False
+		# if self._colors[node].is_colored():
+		# 	return False
 		for neighbor in list(self._neighbors[node]):
 			# Second : is the neighbour already colored ?
 			if self._colors[neighbor].is_colored():
 				self._colors[node].remove_colors(self._colors[neighbor])
 		# Finally : if now the node is colored, add it to the total
-		if self._colors[node].is_colored():
+		if self._colors[node].is_colored() \
+		   and not (node_colors_at_beginning == self._colors[node]) :
 			self._color_count[self._colors[node].get_color()] += 1
 		return not (node_colors_at_beginning == self._colors[node])
 
@@ -173,8 +190,8 @@ class _Kcoloration_state: #-----------------------------------------------------
 	def first(color_nb, neighbors):
 		node_nb = len(neighbors)
 		return _Kcoloration_state(color_nb, neighbors,
-			                      [Color.gradient(color_nb) for i in range(node_nb)],
-			                      [           0             for i in range(node_nb)])
+			                      [Color.gradient(color_nb) for i in range( node_nb)],
+			                      [           0             for i in range(color_nb)])
 
 
 # {\_Kcoloration_state}------------------------------------------------------------------
@@ -187,4 +204,16 @@ def coloration(neighbors,color_nb=3):
 	such that two neighbour nodes don't have the same.
 	This problem is NP-complete and this algorithm uses heuristics and back-tracking.
 	"""
+	state = _Kcoloration_state.first(color_nb, neighbors)
+	fine = False
+	while not fine:
+		fine = state.update()
+		if not fine:
+			state = state.new_state()
+			continue
+		elif fine == 2:
+			state = state.backtrack()
+			fine = 2*(1 - (not state))
+	if fine == 1:
+		return [c.get_color() for c in state.colors]
 	return None
