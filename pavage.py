@@ -51,31 +51,31 @@ class Tile: #-------------------------------------------------------------------
 	#                         #
 	###########################
 
-	@property								#
-	def pos(self):							#
-		return (self.x,self.y)				#
-	@pos.setter								#
-	def pos(self,value):					#   pos = (x,y)
-		self.x=value[0]						#
-		self.y=value[1]						#   indexes : copy of _indexes
-	@property								#
-	def indexes(self):						#
-		return self._indexes.copy()			#
-	@property								#   tlc (top-left corner)
-	def tlc(self):							#   brc (bottom-right corner)
-		return (self._x_min,self._y_min)	#       their relative position
-	@property								#       to the (0,0) point
-	def brc(self):							#
-		return (self._x_max,self._y_max)	#   height / width of the Tile
-	@property								#
-	def height(self):						#
-		return self._x_max - self._x_min +1	#   area : number of cells covered
-	@property								#          by the Tile
-	def width(self):						#
-		return self._y_max - self._y_min +1	#
-	@property								#
-	def area(self):							#
-		return len(self._indexes)			#
+	@property                           	#
+	def pos(self):                      	#
+		return (self.x,self.y)              #
+	@pos.setter                         	#
+	def pos(self,value):                	#   pos = (x,y)
+		self.x=value[0]                     #
+		self.y=value[1]                     #   indexes : copy of _indexes
+	@property                           	#
+	def indexes(self):                  	#
+		return self._indexes.copy()         #
+	@property                           	#   tlc (top-left corner)
+	def tlc(self):                      	#   brc (bottom-right corner)
+		return (self._x_min,self._y_min)    #       their relative position
+	@property                           	#       to the (0,0) point
+	def brc(self):                      	#
+		return (self._x_max,self._y_max)    #   height / width of the Tile
+	@property                           	#
+	def height(self):                   	#
+		return self._x_max - self._x_min +1 #   area : number of cells covered
+	@property                           	#          by the Tile
+	def width(self):                    	#
+		return self._y_max - self._y_min +1 #
+	@property                           	#
+	def area(self):                     	#
+		return len(self._indexes)           #
 
 
 	def __iter__(self):            # used to iter the indexes of the tile
@@ -410,20 +410,20 @@ class Pavage: #-----------------------------------------------------------------
 	#                         #
 	###########################
 
-	@property				#
-	def h(self):			#   Protected variables 'get'
-		return self._h		#
-	@property				#
-	def height(self):		#   _h (height of the tiled grid):
-		return self.h		#      h , height
-	@property				#
-	def w(self):			#   _w (width of the tiled grid):
-		return self._w		#      w , width
-	@property				#
-	def width(self):		#   _tiles (list of tiles of tiling):
-		return self.w		#      tiles
-	@property				#
-	def tiles(self):		#
+	@property	            #
+	def h(self):	        #   Protected variables 'get'
+		return self._h      #
+	@property	            #
+	def height(self):	    #   _h (height of the tiled grid):
+		return self.h       #      h , height
+	@property	            #
+	def w(self):	        #   _w (width of the tiled grid):
+		return self._w      #      w , width
+	@property	            #
+	def width(self):	    #   _tiles (list of tiles of tiling):
+		return self.w       #      tiles
+	@property	            #
+	def tiles(self):	    #
 		return [t.copy() for t in self._tiles]
 		
 

@@ -24,21 +24,6 @@ class Color: #------------------------------------------------------------------
 	def color_nb(self):
 		return len(self._colors)
 
-	def is_colored(self):
-		return self.color_nb == 1
-
-	def is_empty(self):
-		return self.color_nb == 0
-
-	def get_color(self):
-		return next(iter(self._colors))
-
-	def remove_colors(self,c):
-		self._colors -= c._colors
-
-	def copy(self):
-		return Color(self._colors)
-
 	def __iter__(self):
 		return Color.Iterator(self)
 	class Iterator:
@@ -52,6 +37,24 @@ class Color: #------------------------------------------------------------------
 				return res
 			except (IndexError):
 				raise StopIteration
+
+	def __eq__(self,c):
+		return self._colors == c._colors
+
+	def copy(self):
+		return Color(self._colors)
+
+	def is_colored(self):
+		return self.color_nb == 1
+
+	def is_empty(self):
+		return self.color_nb == 0
+
+	def get_color(self):
+		return next(iter(self._colors))
+
+	def remove_colors(self,c):
+		self._colors -= c._colors
 
 	#################
 	# SPECIAL INITS #
@@ -72,43 +75,109 @@ class Color: #------------------------------------------------------------------
 # {\Color}-------------------------------------------------------------------------------
 
 
-class Kcoloration_state: #---------------------------------------------------------------
+class _Kcoloration_state: #--------------------------------------------------------------
 	def __init__(self,color_nb,neighbors,colors, color_count,
-		         back_state=None, back_choice=None):
+		         back_state=None, back_node=None):
 		self._color_nb = color_nb
+		self._node_nb  = len(neighbors)
 		self._neighbors = [n.copy() for n in neighbors]
 		self._colors = [c.copy() for c in colors]
 		self._color_count = color_count.copy()
 		self._back_state = back_state
-		self._back_choice = back_choice
+		self._back_node = back_node
 
-	def finished(self):
-		return reduce( lambda a,b : a & b.is_colored(), self._colors, True )
+	def is_solved(self):
+		return reduce( lambda a,b : a and b.is_colored(), self._colors, True  )
 
-	def new_state(self,choice,color):
-		new_state = Kcoloration_state(self._color_nb,self._neighbors,
-			                           self._colors, self._color_count,
-			                           back_state=self, back_choice=choice)
-		new_state._colors[choice] = color
-		new_state._color_count[color.get_color()] += 1
-		return new_state
+	def is_unsolvable(self):
+		return reduce( lambda a,b : a or  b.is_empty(),   self._colors, False )
 
-	def backtrack(self):
-		if self._back_state:
-			self._back_state._colors[self._back_choice].remove_colors(
-			                                            self._colors[self._back_choice])
-		return self._back_state
+	def _random_node(self):
+		# used by new_state, returns the node to select a color from
+		# as for now : choose a node with the smallest amount of chosable colors
+		chosable_nodes = []
+		min_color_nb = float('inf')
+		for node in range(self._node_nb):
+			node_color_nb = self._colors[node].color_nb
+			chosable_nodes = (min_color_nb <= node_color_nb)*chosable_nodes \
+			                + (min_color_nb >= node_color_nb)*[node]
+			min_color_nb = min( min_color_nb , node_color_nb )
+		return rd.choice(chosable_nodes)
 
-	def random_color(self,choice):
+
+	def _random_color(self,node):
+		# used by new_state, returns a color for the chosen node
+		# as for now : choose a color that is the least present
 		chosable_color = []
 		mini = float('inf')
-		for c in self._colors[choice]:
+		for c in self._colors[node]:
 			chosable_color = (mini <= self._color_count[c])*chosable_color \
-			                 + (mini >= self._color_count[c])*list(Color.monochrome(c))
+			                + (mini >= self._color_count[c])*[Color.monochrome(c)]
 			mini = min(mini,self._color_count[c])
 		return rd.choice(chosable_color)
 
-# {\Kcoloration_state}-------------------------------------------------------------------
+
+	def new_state(self,node,color):
+		less1x1 = self._random_node()
+		new_state = _Kcoloration_state(self._color_nb,self._neighbors,
+			                           self._colors, self._color_count,
+			                           back_state=self, back_node=node)
+		new_state._colors[node] = self._random_color(node)
+		new_state._color_count[color.get_color()] += 1
+		return new_state
+
+
+	def backtrack(self):
+		if self._back_state:
+			self._back_state._colors[self._back_node].remove_colors(
+			                                            self._colors[self._back_node])
+		return self._back_state
+
+
+	def heuristics(self,node):
+		"""
+		For a node, use some heuristics to determine better the possible colors
+		it can take.
+		Returns True if a change was made.
+		"""
+		node_colors_at_beginning = self._colors[node].copy()
+		# First : is the node already colored ?
+		if self._colors[node].is_colored():
+			return False
+		for neighbor in list(self._neighbors[node]):
+			# Second : is the neighbour already colored ?
+			if self._colors[neighbor].is_colored():
+				self._colors[node].remove_colors(self._colors[neighbor])
+		# Finally : if now the node is colored, add it to the total
+		if self._colors[node].is_colored():
+			self._color_count[self._colors[node].get_color()] += 1
+		return not (node_colors_at_beginning == self._colors[node])
+
+
+	def update(self):
+		"""
+		Try to update the possible colors of all nodes as many times as it can.
+		Stops when no change can be made via heuristics.
+		Three possible outcomes :
+		 - returns 0 : Stopped (but still solvable, may need new_state)
+		 - returns 1 : Success (all nodes colored)
+		 - returns 2 : Failure (at least one node empty, may need backtracking)
+		"""
+		anychange = True
+		while anychange:
+			anychange = False
+			for node in range(self._node_nb):
+				anychange |= self.heuristics(node)
+		return self.is_solved() + 2*self.is_unsolvable()
+
+	def first(color_nb, neighbors):
+		node_nb = len(neighbors)
+		return _Kcoloration_state(color_nb, neighbors,
+			                      [Color.gradient(color_nb) for i in range(node_nb)],
+			                      [           0             for i in range(node_nb)])
+
+
+# {\_Kcoloration_state}------------------------------------------------------------------
 
 
 def coloration(neighbors,color_nb=3):
