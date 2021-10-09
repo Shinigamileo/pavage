@@ -148,15 +148,6 @@ class Tile: #-------------------------------------------------------------------
 		   and reduce(lambda a,b : a&grid[x+b[0]][y+b[1]],self._indexes,True)
 
 
-	def rd_weight(self,weighted=False):
-		"""
-		Give the wieght of the Tile.
-		Can be used to make some Tiles more valuable than others.
-		"""
-		return 1-weighted\
-				+ weighted*(self.area*self.area*self.area)
-
-
 	def is_connected(self): # TODO
 		"""
 		Returns True if the Tile is connected, meaning that every cell
@@ -168,6 +159,15 @@ class Tile: #-------------------------------------------------------------------
 		neighlist = self.graph_neighborslist()
 		group = set()
 		return None
+
+
+	def rd_weight(self,weighted=False):
+		"""
+		Give the wieght of the Tile.
+		Can be used to make some Tiles more valuable than others.
+		"""
+		return 1-weighted\
+				+ weighted*(self.area*self.area*self.area)
 
 
 	def rotate(self,a):
@@ -219,6 +219,10 @@ class Tile: #-------------------------------------------------------------------
 		for i,j in self._indexes:
 			grid[i-self._x_min][j-self._y_min]=1
 		return grid
+
+
+	def get_tlcoords(self):
+		return [(x - self._x_min , y - self._y_min) for x,y in self._indexes]
 
 
 	def get_key(self):

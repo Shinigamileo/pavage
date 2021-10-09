@@ -12,17 +12,18 @@ import sys
 
 if __name__=="__main__":
 
-	# form = [[0,1,1,1],
-	# 	 	[1,1,0,1],
-	# 		[1,0,0,1],
-	# 		[0,0,1,1,1]]
-	# t = Tile.from_form(form)
+	form = [[0,1],
+		 	[1,1],
+			[1,1],
+			[0,0]]
+	t = Tile.from_form(form)
 	# print(t.graph_neighborslist())
 	# j = t.json()
 	# print(j)
-	# print(t)
+	print(t)
+	print(t.get_tlcoords())
 	# print(Tile.from_json(j))
-	# sys.exit(0)
+	sys.exit(0)
 
 	X = 4
 	Y = 4
