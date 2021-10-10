@@ -10,8 +10,8 @@
 
 """
 TODO :
+- relative forms
 - Tile.is_connected()
-- Pavage.coloration()
 """
 
 import random as rd
@@ -66,12 +66,12 @@ class Tile: #-------------------------------------------------------------------
 		return (self._x_min,self._y_min)    #       their relative position
 	@property                           	#       to the (0,0) point
 	def brc(self):                      	#
-		return (self._x_max,self._y_max)    #   height / width of the Tile
+		return (self._x_max,self._y_max)    #   xsize / ysize of the Tile
 	@property                           	#
-	def height(self):                   	#
+	def xsize(self):                   	#
 		return self._x_max - self._x_min +1 #   area : number of cells covered
 	@property                           	#          by the Tile
-	def width(self):                    	#
+	def ysize(self):                    	#
 		return self._y_max - self._y_min +1 #
 	@property                           	#
 	def area(self):                     	#
@@ -215,13 +215,21 @@ class Tile: #-------------------------------------------------------------------
 		│ ┌─┘ ┃ (1,0) , (2,-1) ┃ ∙  [1,0]]
 		└─┘   ┗                ┛
 		"""
-		grid = [[0 for j in range(self.width)] for i in range(self.height)]
+		grid = [[0 for j in range(self.ysize)] for i in range(self.xsize)]
 		for i,j in self._indexes:
 			grid[i-self._x_min][j-self._y_min]=1
 		return grid
 
 
 	def get_tlcoords(self):
+		"""
+		Give the Tile's coordinates relative to the top-left corner
+		  ┏━┓ ┏                ┓     ∙ ┎─┐ ┏               ┓
+		┌─┚╍╿ ┃          (0,0) ┃     ┍━┛ │ ┃         (0,1) ┃
+		│   │ ┃ (1,-1) , (1,0) ┃ ->  │   │ ┃ (1,0) , (1,1) ┃
+		└───┘ ┃ (2,-1) , (2,0) ┃     └───┘ ┃ (2,0) , (2,1) ┃
+		      ┗                ┛           ┗               ┛
+		"""
 		return [(x - self._x_min , y - self._y_min) for x,y in self._indexes]
 
 
@@ -255,7 +263,8 @@ class Tile: #-------------------------------------------------------------------
 		return Tile.rectangle(c,c,pos)
 
 
-	def from_form(grid,pos=(0,0)):
+	def from_form(grid,pos=(0,0),
+		          x_dir="down",y_dir="right"):
 		"""
 		Use a boolean grid to generate a Tile
 		[[0,0],     ┌─┐ ┏                ┓
@@ -329,23 +338,23 @@ class Pavage: #-----------------------------------------------------------------
 	 ∨├─┼─┼─┼─┤  ───╱  ║ ║     ║ ∙ ┃ │     │ , │ │ , ┌─┐ , ┌───┐ ┃
 	  └─┴─┴─┴─┘        ╚═╩═════╝   ┗ └─────┘   └─┘   └─┘   └───┘ ┛
 	"""
-	def __init__(self, h, w, tile_set,
+	def __init__(self, xs, ys, tile_set,
 			   	fill     = False , # if wanna always put the biggest Tile possible
 			   	weighted = False , # if the bigger the Tile, the better the chances
 			   	less1x1  = False,  # if try to minimise number of 1x1
 			   	dotiling = True,   # if the init DOES require a tiling
 			   	):
 
-		self._h = h ; self._w = w
+		self._xs = xs ; self._ys = ys
 		self._tiles = [] # the list of tiles that will be returned
 		# if we don't need a tiling (example : if this is a copy)
 		if not dotiling:
 			self._tiles = [t.copy() for t in tile_set]
 			return
 		# else... prepare for tiling !!!
-		unoccupied_cells = set(range(h*w))  # set of all empty cells
-		grid = [[True for j in range(w)] for i in range(h)] # True : empty cell
-		not1x1count = less1x1 * h * w
+		unoccupied_cells = set(range(xs*ys))  # set of all empty cells
+		grid = [[True for j in range(ys)] for i in range(xs)] # True : empty cell
+		not1x1count = less1x1 * xs * ys
 
 		while(unoccupied_cells):
 			chosable_tiles = [] # where we'll stack the putable tiles
@@ -356,16 +365,16 @@ class Pavage: #-----------------------------------------------------------------
 				# randomly choose an unoccupied cell #
 				######################################
 				cell = rd.choice(list(unoccupied_cells))
-				cell_x = cell//w
-				cell_y = cell%w 
+				cell_x = cell//ys
+				cell_y = cell%ys
 
 				####################################
 				# generate a list of putable tiles #
 				####################################
 				size_max = 0        # the size of the greatest putable tile
 				for t in tile_set:
-					eligible = (t.tlc[0]+cell_x>=0) and (t.brc[0]+cell_x<h) \
-						   and (t.tlc[1]+cell_y>=0) and (t.brc[1]+cell_y<w) \
+					eligible = (t.tlc[0]+cell_x>=0) and (t.brc[0]+cell_x<xs) \
+						   and (t.tlc[1]+cell_y>=0) and (t.brc[1]+cell_y<ys) \
 						   and reduce(lambda a,b : a&grid[cell_x+b[0]][cell_y+b[1]],t,1)
 					tile_weight = eligible*t.rd_weight(weighted)
 
@@ -405,7 +414,7 @@ class Pavage: #-----------------------------------------------------------------
 			self._tiles.append(tile)
 			for i in tile:
 				grid[cell_x+i[0]][cell_y+i[1]] = False
-				unoccupied_cells.remove((cell_x+i[0])*w+(cell_y+i[1]))
+				unoccupied_cells.remove((cell_x+i[0])*ys+(cell_y+i[1]))
 
 
 	###########################
@@ -415,17 +424,17 @@ class Pavage: #-----------------------------------------------------------------
 	###########################
 
 	@property	            #
-	def h(self):	        #   Protected variables 'get'
-		return self._h      #
+	def xs(self):	        #   Protected variables 'get'
+		return self._xs     #
 	@property	            #
-	def height(self):	    #   _h (height of the tiled grid):
-		return self.h       #      h , height
+	def xsize(self):	    #   _xs (xsize of the tiled grid):
+		return self.xs      #      xs , xsize
 	@property	            #
-	def w(self):	        #   _w (width of the tiled grid):
-		return self._w      #      w , width
+	def ys(self):	        #   _ys (ysize of the tiled grid):
+		return self._ys     #      ys , ysize
 	@property	            #
-	def width(self):	    #   _tiles (list of tiles of tiling):
-		return self.w       #      tiles
+	def ysize(self):	    #   _tiles (list of tiles of tiling):
+		return self.ys      #      tiles
 	@property	            #
 	def tiles(self):	    #
 		return [t.copy() for t in self._tiles]
@@ -457,13 +466,13 @@ class Pavage: #-----------------------------------------------------------------
 	##################
 
 	def copy(self):
-		return Pavage(self._h, self._w, self._tiles, dotiling = False)
+		return Pavage(self._xs, self._ys, self._tiles, dotiling = False)
 
 
 	def json(self):
 		output = {}
-		output["size"] = {"height" : self._h,
-						  "width"  : self._w
+		output["size"] = {"xsize" : self._xs,
+						  "ysize"  : self._ys
 						 }
 		output["tiles"]=[]
 		for t in self._tiles:
@@ -478,12 +487,16 @@ class Pavage: #-----------------------------------------------------------------
 		"""
 		grid = self.get_numbered_grid()
 		neighlist = [set() for i in range(len(self._tiles))]
-		for i in range(self._h-1):
-			for j in range(self._w-1):
-				neighlist[grid[ i ][ j ]].add(grid[i+1][ j ])
-				neighlist[grid[i+1][ j ]].add(grid[ i ][ j ])
-				neighlist[grid[ i ][ j ]].add(grid[ i ][j+1])
-				neighlist[grid[ i ][j+1]].add(grid[ i ][ j ])
+		for i in range(self._xs-1):
+			for j in range(self._ys-1):
+				for di,dj in [(1,0),(0,1)]:
+					neighlist[grid[ i  ][ j  ]].add(grid[i+di][j+dj])
+					neighlist[grid[i+di][j+dj]].add(grid[ i  ][ j  ])
+			neighlist[grid[ i ][-1]].add(grid[i+1][-1])
+			neighlist[grid[i+1][-1]].add(grid[ i ][-1])
+		for j in range(self._ys-1):
+			neighlist[grid[-1][ j ]].add(grid[-1][j+1])
+			neighlist[grid[-1][j+1]].add(grid[-1][ j ])
 		for i in range(len(neighlist)):
 			neighlist[i] -= {i}
 		return neighlist
@@ -507,7 +520,7 @@ class Pavage: #-----------------------------------------------------------------
 			tmp_count[key][0] += 1
 			tmp_count[key][1]  = round(tmp_count[key][0]/l*100,
 				                        roundto)
-			tmp_count[key][2]  = round(tmp_count[key][0]*t.area/(self._h*self._w)*100,
+			tmp_count[key][2]  = round(tmp_count[key][0]*t.area/(self._xs*self._ys)*100,
 				                        roundto)
 
 		count = {k:(tmp_count[k][0],
@@ -535,33 +548,33 @@ class Pavage: #-----------------------------------------------------------------
 		"""
 		grid = self.get_numbered_grid()
 		print("╔",end="")
-		for j in range(self._w):
+		for j in range(self._ys):
 			print("══",end="")
-			if j == self._w-1:
+			if j == self._ys-1:
 				print("╗",end="")
 			elif grid[0][j] != grid[0][j+1]:
 				print("╦",end='')
 			else:
 				print("═",end="")
 		print("")
-		for i in range(self._h):
+		for i in range(self._xs):
 			print("║",end="")
-			for j in range(self._w):
+			for j in range(self._ys):
 				print("  ",end="")
-				if j == self._w-1 or grid[i][j] != grid[i][j+1]:
+				if j == self._ys-1 or grid[i][j] != grid[i][j+1]:
 					print("║",end='')
 				else:
 					print(" ",end="")
 			print("")
-			if i < self._h-1:
+			if i < self._xs-1:
 				if grid[i][0] != grid[i+1][0]:
 					print("╠",end="")
 				else:
 					print("║",end='')
-				for j in range(self._w):
+				for j in range(self._ys):
 					if grid[i][j] != grid[i+1][j]:
 						print("══",end="")
-						if j == self._w-1:
+						if j == self._ys-1:
 							print("╣",end="")
 						elif grid[i][j] != grid[i][j+1]:
 							if  grid[i][j+1] == grid[i+1][j+1]:
@@ -582,7 +595,7 @@ class Pavage: #-----------------------------------------------------------------
 							print("═",end="")
 					else:
 						print("  ",end="")
-						if j == self._w-1:
+						if j == self._ys-1:
 							print("║",end="")
 						elif grid[i][j] != grid[i][j+1]:
 							if grid[i][j+1] != grid[i+1][j+1]:
@@ -599,9 +612,9 @@ class Pavage: #-----------------------------------------------------------------
 								print(" ",end="")
 			else:
 				print("╚",end="")
-				for j in range(self._w):
+				for j in range(self._ys):
 					print("══",end="")
-					if j == self._w-1:
+					if j == self._ys-1:
 						print("╝",end="")
 					elif grid[i][j] != grid[i][j+1]:
 						print("╩",end='')
@@ -613,10 +626,10 @@ class Pavage: #-----------------------------------------------------------------
 
 	def get_numbered_grid(self):
 		"""
-		Generate a height*width grid in which each cell contains
+		Generate a xsize*ysize grid in which each cell contains
 		the index of the put Tile in the tiles
 		"""
-		grid = [[None for j in range(self._w)] for i in range(self._h)]
+		grid = [[None for j in range(self._ys)] for i in range(self._xs)]
 		for i in range(len(self._tiles)):
 			for j in self._tiles[i]:
 				grid[self._tiles[i].x+j[0]][self._tiles[i].y+j[1]]=i
@@ -630,8 +643,8 @@ class Pavage: #-----------------------------------------------------------------
 	######################################
 
 	def from_json(jsondict):
-		return Pavage(jsondict["size"]["height"],
-			          jsondict["size"]["width" ],
+		return Pavage(jsondict["size"]["xsize"],
+			          jsondict["size"]["ysize" ],
 			          [Tile.from_json(d) for d in jsondict["tiles"]],
 			          dotiling=False)
 

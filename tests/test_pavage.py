@@ -12,18 +12,18 @@ import sys
 
 if __name__=="__main__":
 
-	form = [[0,1],
-		 	[1,1],
-			[1,1],
-			[0,0]]
-	t = Tile.from_form(form)
+	# form = [[0,1],
+	# 	 	[1,1],
+	# 		[1,1],
+	# 		[0,0]]
+	# t = Tile.from_form(form)
 	# print(t.graph_neighborslist())
 	# j = t.json()
 	# print(j)
-	print(t)
-	print(t.get_tlcoords())
+	# print(t)
+	# print(t.get_tlcoords())
 	# print(Tile.from_json(j))
-	sys.exit(0)
+	# sys.exit(0)
 
 	X = 4
 	Y = 4
@@ -106,16 +106,28 @@ if __name__=="__main__":
 	# sys.exit(0)
 	# setile.append(Tile.from_form(form))
 
-	tiles = Pavage(X,Y,setile3,\
-				   fill=FILL,weighted=WEIGHTED,less1x1=LESS1X1)
+
+
+	# jsondict = {'size': {'xsize': 4, 'ysize': 4}, 'tiles': [{'pos': (1, 2), 'indexes': [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]}, {'pos': (0, 3), 'indexes': [[0, 0], [1, 0]]}, {'pos': (3, 0), 'indexes': [[0, 0], [0, 1]]}, {'pos': (0, 1), 'indexes': [[1, 0], [1, -1], [0, 0]]}, {'pos': (3, 3), 'indexes': [[0, 0]]}, {'pos': (0, 0), 'indexes': [[0, 0]]}, {'pos': (0, 2), 'indexes': [[0, 0]]}, {'pos': (2, 0), 'indexes': [[0, 0]]}]}
+	# tiles = Pavage.from_json(jsondict)
+
+	tiles = Pavage(X,Y,setile3,fill=FILL,weighted=WEIGHTED,less1x1=LESS1X1)
 	tiles.fancy_display()
+	# print(tiles.json())
+	# print("")
 	# count = tiles.count()
 	# for index in count:
 	# 	print(str(index) + "\t: " + str(count[index]),end="\n\n")
 
-	colo = tiles.get_coloration(4)
-	for i in range(len(tiles.tiles)):
-		print(str(tiles.tiles[i]) + "\n\t -> " + str(colo[i]))
+	colo = tiles.get_coloration(3)
+	grigrid = tiles.get_numbered_grid()
+	for l in grigrid:
+		for c in l:
+			print(colo[c],end="")
+		print("")
+	print("")
+	# for i in range(len(tiles.tiles)):
+	# 	print(str(tiles.tiles[i]) + "\n\t -> " + str(colo[i]))
 
 	# print(Pavage.count(tiles))# for t in tiles:
 	# for t in tiles:

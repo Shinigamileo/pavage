@@ -10,7 +10,7 @@
 
 """
 TODO :
-- finish coloration
+- finish coloration (BUGGED !)
 """
 
 import random as rd
@@ -137,13 +137,14 @@ class _Kcoloration_state: #-----------------------------------------------------
 		new_state._colors[node] = color
 		new_state._color_count[color.get_color()] += 1
 		# print("MAKING NEW STATE :")
+		# print(new_state._back_state == self)
 		# print("\tnode  : " + str(node))
 		# print("\tcolor : " + str(color.get_color()))
 		return new_state
 
 
 	def backtrack(self):
-		print("BACKTRACKING")
+		# print("BACKTRACKING")
 		if self._back_state:
 			self._back_state._colors[self._back_node].remove_colors(
 			                                            self._colors[self._back_node])
@@ -158,15 +159,14 @@ class _Kcoloration_state: #-----------------------------------------------------
 		"""
 		node_colors_at_beginning = self._colors[node].copy()
 		# First : is the node already colored ?
-		# if self._colors[node].is_colored():
-		# 	return False
+		if self._colors[node].is_colored():
+			return False
 		for neighbor in list(self._neighbors[node]):
 			# Second : is the neighbour already colored ?
 			if self._colors[neighbor].is_colored():
 				self._colors[node].remove_colors(self._colors[neighbor])
 		# Finally : if now the node is colored, add it to the total
-		if self._colors[node].is_colored() \
-		   and not (node_colors_at_beginning == self._colors[node]) :
+		if self._colors[node].is_colored() :
 			self._color_count[self._colors[node].get_color()] += 1
 		return not (node_colors_at_beginning == self._colors[node])
 
@@ -205,15 +205,18 @@ def coloration(neighbors,color_nb=3):
 	This problem is NP-complete and this algorithm uses heuristics and back-tracking.
 	"""
 	state = _Kcoloration_state.first(color_nb, neighbors)
-	fine = False
-	while not fine:
-		fine = state.update()
-		if not fine:
+	end = False
+	while not end:
+		end = state.update()
+		if not end:
 			state = state.new_state()
 			continue
-		elif fine == 2:
-			state = state.backtrack()
-			fine = 2*(1 - (not state))
-	if fine == 1:
+		elif end == 2:
+			backstate = state.backtrack()
+			del state
+			state = backstate
+			end = 2*(not state)
+	if end == 1:
+		print(state._color_count)
 		return [c.get_color() for c in state.colors]
 	return None
