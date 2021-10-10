@@ -512,9 +512,12 @@ class Pavage: #-----------------------------------------------------------------
 		╚═╩═════╝   ⎩ 1x1 : ( 3 ,  60.0% ,  25.0% ) ⎭
 		"""
 		l = len(self._tiles)
-		tmp_count = {"T":[l,float(100),float(100)]}
+		count = {"Total":[l,float(100),float(100)]}
+		tmp_count = {}
 		for t in self._tiles:
 			key = t.get_key()
+			_ = key.split("\n")
+			key = "%sx%s" % (len(_[0]), len(_))
 			if key not in tmp_count:
 				tmp_count[key] = [0,0,0]
 			tmp_count[key][0] += 1
@@ -523,7 +526,7 @@ class Pavage: #-----------------------------------------------------------------
 			tmp_count[key][2]  = round(tmp_count[key][0]*t.area/(self._xs*self._ys)*100,
 				                        roundto)
 
-		count = {k:(tmp_count[k][0],
+		count["tiles"] = {k:(tmp_count[k][0],
 			        tmp_count[k][1],
 			        tmp_count[k][2]) for k in tmp_count}
 		return count
