@@ -35,6 +35,7 @@ if __name__=="__main__":
 	FILL = True
 	WEIGHTED = False
 	LESS1X1 = True
+	COLO = 7
 
 	forms = [([[0,1,1,1],
 		 	   [1,1,0,1],
@@ -107,10 +108,8 @@ if __name__=="__main__":
 	setile3=Tile.set_for_pavage(forms)
 	# setile3=Tile.rectangle_range(3)
 	# for t in setile3:
-	# 	f = t.get_form()
-	# 	for l in f:
-	# 		print(l)
-	# 	print(",")
+	# 	t.fancy_display()
+	# 	print("")
 	# print("-------------------------")
 	# sys.exit(0)
 	# setile.append(Tile.from_form(form))
@@ -121,20 +120,20 @@ if __name__=="__main__":
 	# tiles = Pavage.from_json(jsondict)
 
 	tiles = Pavage(X,Y,setile3,fill=FILL,weighted=WEIGHTED,less1x1=LESS1X1)
-	tiles.fancy_display()
+	tiles.fancy_display(colors=COLO)
 	# print(tiles.json())
 	# print("")
 	# count = tiles.count()
 	# for index in count:
 	# 	print(str(index) + "\t: " + str(count[index]),end="\n\n")
 
-	colo = tiles.get_coloration(5)
-	grigrid = tiles.get_numbered_grid()
-	for l in grigrid:
-		for c in l:
-			print(colo[c],end="")
-		print("")
-	print("")
+	colo = tiles.get_coloration(COLO)
+	# grigrid = tiles.get_numbered_grid()
+	# for l in grigrid:
+	# 	for c in l:
+	# 		print(colo[c],end="")
+	# 	print("")
+	# print("")
 
 	isright = True
 	graph = tiles.get_graph_neighborslist()

@@ -9,8 +9,8 @@
 """
 
 """
-TODO :
-- finish coloration (BUGGED !)
+TODO:
+- better heuristics
 """
 
 import random as rd

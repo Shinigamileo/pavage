@@ -10,8 +10,7 @@
 
 """
 TODO :
-- relative forms
-- Tile.is_connected()
+- repavage
 """
 
 import random as rd
@@ -68,7 +67,7 @@ class Tile: #-------------------------------------------------------------------
 	def brc(self):                      	#
 		return (self._x_max,self._y_max)    #   xsize / ysize of the Tile
 	@property                           	#
-	def xsize(self):                   	#
+	def xsize(self):                   	    #
 		return self._x_max - self._x_min +1 #   area : number of cells covered
 	@property                           	#          by the Tile
 	def ysize(self):                    	#
@@ -137,17 +136,6 @@ class Tile: #-------------------------------------------------------------------
 		return neighlist
 
 
-	def is_eligible(self, grid, pos):
-		"""
-		Check if the Tile can be put in a more or less filled grid at pos pos
-		Regards, Cap'n Obvious
-		"""
-		x,y = pos
-		return (self._x_min+x>=0) and (self._x_max+x<h) \
-		   and (self._y_min+y>=0) and (self._y_max+y<w) \
-		   and reduce(lambda a,b : a&grid[x+b[0]][y+b[1]],self._indexes,True)
-
-
 	def is_connected(self): # TODO
 		"""
 		Returns True if the Tile is connected, meaning that every cell
@@ -158,7 +146,13 @@ class Tile: #-------------------------------------------------------------------
 		"""
 		neighlist = self.get_graph_neighborslist()
 		group = set()
-		return None
+		nodes_to_check = {0}
+		while nodes_to_check:
+			node = nodes_to_check.pop()
+			if node not in group:
+				group.add(node)
+				nodes_to_check |= neighlist[node]
+		return len(group) == self.area
 
 
 	def rd_weight(self,weighted=False):
@@ -245,6 +239,17 @@ class Tile: #-------------------------------------------------------------------
 				key += str(c)
 			key += "\n"
 		return key[:-1]
+
+
+	def fancy_display(self):
+		f = self.get_form()
+		for l in f:
+			for c in l:
+				if c:
+					print("██",end="")
+				else:
+					print("  ",end="")
+			print("")
 
 
 	####################################
@@ -573,86 +578,99 @@ class Pavage: #-----------------------------------------------------------------
 		return kc.coloration(self.get_graph_neighborslist(),color_nb)
 
 
-	def fancy_display(self):
+	fancy_colors = ["\033[31m","\033[32m", # colors for fancy_display on Unix terminal
+	                "\033[34m","\033[33m", # in order : red, green, blue,
+	                "\033[35m","\033[36m", #            yellow, magenta, cyan
+	                "\033[37m"]            #            white
+	fancy_end = "\033[0m"
+	def fancy_display(self,colors=0):
 		"""
 		Print the pavage in a fancy way. It'll look just like the drawings
 		I made with the Box Unicode characters. They're sooooo pretty <3
 		"""
 		grid = self.get_numbered_grid()
-		print("╔",end="")
-		for j in range(self._ys):
-			print("══",end="")
-			if j == self._ys-1:
-				print("╗",end="")
-			elif grid[0][j] != grid[0][j+1]:
-				print("╦",end='')
-			else:
-				print("═",end="")
-		print("")
-		for i in range(self._xs):
-			print("║",end="")
-			for j in range(self._ys):
-				print("  ",end="")
-				if j == self._ys-1 or grid[i][j] != grid[i][j+1]:
-					print("║",end='')
-				else:
-					print(" ",end="")
-			print("")
-			if i < self._xs-1:
-				if grid[i][0] != grid[i+1][0]:
-					print("╠",end="")
-				else:
-					print("║",end='')
+		if colors:
+			colo = self.get_coloration(colors)
+			for i in range(self._xs):
 				for j in range(self._ys):
-					if grid[i][j] != grid[i+1][j]:
+					this_color = Pavage.fancy_colors[colo[grid[i][j]]]
+					print(this_color + "██" + Pavage.fancy_end,end="")
+				print("")
+		else:
+			print("╔",end="")
+			for j in range(self._ys):
+				print("══",end="")
+				if j == self._ys-1:
+					print("╗",end="")
+				elif grid[0][j] != grid[0][j+1]:
+					print("╦",end='')
+				else:
+					print("═",end="")
+			print("")
+			for i in range(self._xs):
+				print("║",end="")
+				for j in range(self._ys):
+					print("  ",end="")
+					if j == self._ys-1 or grid[i][j] != grid[i][j+1]:
+						print("║",end='')
+					else:
+						print(" ",end="")
+				print("")
+				if i < self._xs-1:
+					if grid[i][0] != grid[i+1][0]:
+						print("╠",end="")
+					else:
+						print("║",end='')
+					for j in range(self._ys):
+						if grid[i][j] != grid[i+1][j]:
+							print("══",end="")
+							if j == self._ys-1:
+								print("╣",end="")
+							elif grid[i][j] != grid[i][j+1]:
+								if  grid[i][j+1] == grid[i+1][j+1]:
+									if grid[i+1][j] == grid[i+1][j+1]:
+										print("╝",end="")
+									else:
+										print("╣",end="")
+								elif grid[i+1][j] == grid[i+1][j+1]:
+									print("╩",end="")
+								else:
+									print("╬",end="")
+							elif grid[i+1][j] != grid[i+1][j+1]:
+								if grid[i][j+1] == grid[i+1][j+1]:
+									print("╗",end="")
+								else:
+									print("╦",end="")
+							else:
+								print("═",end="")
+						else:
+							print("  ",end="")
+							if j == self._ys-1:
+								print("║",end="")
+							elif grid[i][j] != grid[i][j+1]:
+								if grid[i][j+1] != grid[i+1][j+1]:
+									if grid[i+1][j] == grid[i+1][j+1]:
+										print("╚",end="")
+									else:
+										print("╠",end="")
+								else:
+									print("║",end="")
+							else:
+								if grid[i][j] != grid[i+1][j+1]:
+									print("╔",end="")
+								else:
+									print(" ",end="")
+				else:
+					print("╚",end="")
+					for j in range(self._ys):
 						print("══",end="")
 						if j == self._ys-1:
-							print("╣",end="")
+							print("╝",end="")
 						elif grid[i][j] != grid[i][j+1]:
-							if  grid[i][j+1] == grid[i+1][j+1]:
-								if grid[i+1][j] == grid[i+1][j+1]:
-									print("╝",end="")
-								else:
-									print("╣",end="")
-							elif grid[i+1][j] == grid[i+1][j+1]:
-								print("╩",end="")
-							else:
-								print("╬",end="")
-						elif grid[i+1][j] != grid[i+1][j+1]:
-							if grid[i][j+1] == grid[i+1][j+1]:
-								print("╗",end="")
-							else:
-								print("╦",end="")
+							print("╩",end='')
 						else:
 							print("═",end="")
-					else:
-						print("  ",end="")
-						if j == self._ys-1:
-							print("║",end="")
-						elif grid[i][j] != grid[i][j+1]:
-							if grid[i][j+1] != grid[i+1][j+1]:
-								if grid[i+1][j] == grid[i+1][j+1]:
-									print("╚",end="")
-								else:
-									print("╠",end="")
-							else:
-								print("║",end="")
-						else:
-							if grid[i][j] != grid[i+1][j+1]:
-								print("╔",end="")
-							else:
-								print(" ",end="")
-			else:
-				print("╚",end="")
-				for j in range(self._ys):
-					print("══",end="")
-					if j == self._ys-1:
-						print("╝",end="")
-					elif grid[i][j] != grid[i][j+1]:
-						print("╩",end='')
-					else:
-						print("═",end="")
-			print("")
+				print("")
 		# done ! (￣^￣)ゞ
 
 
