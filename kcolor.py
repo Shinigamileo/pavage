@@ -51,7 +51,9 @@ class Color: #------------------------------------------------------------------
 		return self.color_nb == 0
 
 	def get_color(self):
-		return next(iter(self._colors))
+		if self.is_colored():
+			return next(iter(self._colors))
+		return tuple(self._colors)
 
 	def remove_colors(self,c):
 		self._colors -= c._colors
@@ -103,13 +105,16 @@ class _Kcoloration_state: #-----------------------------------------------------
 		# used by new_state, returns the node to select a color from
 		# as for now : choose a node with the smallest amount of chosable colors
 		chosable_nodes = []
-		# min_color_nb = float('inf')
-		# for node in range(self._node_nb):
-		# 	node_color_nb = self._colors[node].color_nb
-		# 	chosable_nodes = (min_color_nb <= node_color_nb)*chosable_nodes \
-		# 	                + (min_color_nb >= node_color_nb)*[node]
-		# 	min_color_nb = min( min_color_nb , node_color_nb )
-		chosable_nodes = list(range(self._node_nb))
+		min_color_nb = float('inf')
+		for node in range(self._node_nb):
+			node_color_nb = self._colors[node].color_nb
+			if node_color_nb == 1:
+				continue
+			chosable_nodes = (min_color_nb <= node_color_nb)*chosable_nodes \
+			                + (min_color_nb >= node_color_nb)*[node]
+			min_color_nb = min( min_color_nb , node_color_nb )
+		# chosable_nodes = [n for n in range(self._node_nb)
+		#                   if not self._colors[n].is_colored()]
 		# print(chosable_nodes)
 		return rd.choice(chosable_nodes)
 
@@ -118,17 +123,22 @@ class _Kcoloration_state: #-----------------------------------------------------
 		# used by new_state, returns a color for the chosen node
 		# as for now : choose a color that is the least present
 		chosable_colors = []
-		# mini = float('inf')
-		# for c in self._colors[node]:
-		# 	chosable_colors = (mini <= self._color_count[c])*chosable_colors \
-		# 	                 + (mini >= self._color_count[c])*[Color.monochrome(c)]
-		# 	mini = min(mini,self._color_count[c])
-		chosable_colors = [Color.monochrome(c) for c in self._colors[node]._colors]
+		min_color_count = float('inf')
+		for c in self._colors[node]:
+			this_count = self._color_count[c]
+			chosable_colors = (min_color_count <= this_count)*chosable_colors \
+			                 + (min_color_count >= this_count)*[Color.monochrome(c)]
+			min_color_count = min(min_color_count,this_count)
+		# chosable_colors = [Color.monochrome(c) for c in self._colors[node]._colors]
 		# print([c.get_color() for c in chosable_colors])
 		return rd.choice(chosable_colors)
 
 
 	def new_state(self):
+		"""
+		Create a new state instance by chosing a node and a color to color it with
+		The current instance can be retrieved with backtrack
+		"""
 		node  = self._random_node()
 		color = self._random_color(node)
 		new_state = _Kcoloration_state(self._color_nb,self._neighbors,
@@ -137,13 +147,15 @@ class _Kcoloration_state: #-----------------------------------------------------
 		new_state._colors[node] = color
 		new_state._color_count[color.get_color()] += 1
 		# print("MAKING NEW STATE :")
-		# print(new_state._back_state == self)
 		# print("\tnode  : " + str(node))
 		# print("\tcolor : " + str(color.get_color()))
 		return new_state
 
 
 	def backtrack(self):
+		"""
+		Retreat to the previous state and remove the previously chosen color
+		"""
 		# print("BACKTRACKING")
 		if self._back_state:
 			self._back_state._colors[self._back_node].remove_colors(
@@ -162,7 +174,7 @@ class _Kcoloration_state: #-----------------------------------------------------
 		if self._colors[node].is_colored():
 			return False
 		for neighbor in list(self._neighbors[node]):
-			# Second : is the neighbour already colored ?
+			# Second : is the neighbour already colored -> the node can't have the same
 			if self._colors[neighbor].is_colored():
 				self._colors[node].remove_colors(self._colors[neighbor])
 		# Finally : if now the node is colored, add it to the total
@@ -185,7 +197,11 @@ class _Kcoloration_state: #-----------------------------------------------------
 			anychange = False
 			for node in range(self._node_nb):
 				anychange |= self.heuristics(node)
+		# print(self._color_count)
+		# print([c.get_color() for c in self._colors])
+		# print("")
 		return self.is_solved() + 2*self.is_unsolvable()
+
 
 	def first(color_nb, neighbors):
 		node_nb = len(neighbors)
@@ -217,6 +233,7 @@ def coloration(neighbors,color_nb=3):
 			state = backstate
 			end = 2*(not state)
 	if end == 1:
-		print(state._color_count)
+		# print(state._color_count)
+		# print([c.get_color() for c in state._colors])
 		return [c.get_color() for c in state.colors]
 	return None

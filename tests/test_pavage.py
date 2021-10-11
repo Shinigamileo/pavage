@@ -25,27 +25,36 @@ if __name__=="__main__":
 	# print(Tile.from_json(j))
 	# sys.exit(0)
 
-	X = 4
-	Y = 4
+	Tile.default_x_dir = "down"
+	Tile.default_y_dir = "right"
+
+	X = 7
+	Y = 15
 	TILE_LIMIT = 2
 	AREA_LIMIT = float('inf')
-	FILL = False
-	WEIGHTED = True
+	FILL = True
+	WEIGHTED = False
 	LESS1X1 = True
 
 	forms = [([[0,1,1,1],
 		 	   [1,1,0,1],
 			   [1,0,0,1],
 			   [0,0,1,1,1]],True),
+
 			  ([[1]],True),
+
 			  ([[1,1,1],
 			  	[1,0,0]],True),
+
 			  ([[1,1],
 			  	[1,0]],True),
+
 			  ([[1,1]],True),
+
 			  ([[0,1,0],
 			  	[1,1,1],
 			  	[0,1,0]],True),
+
 			  ([[1,0,1],
 			  	[1,1,1],
 			  	[1,0,1]],True)
@@ -119,13 +128,22 @@ if __name__=="__main__":
 	# for index in count:
 	# 	print(str(index) + "\t: " + str(count[index]),end="\n\n")
 
-	colo = tiles.get_coloration(3)
+	colo = tiles.get_coloration(5)
 	grigrid = tiles.get_numbered_grid()
 	for l in grigrid:
 		for c in l:
 			print(colo[c],end="")
 		print("")
 	print("")
+
+	isright = True
+	graph = tiles.get_graph_neighborslist()
+	for n in range(len(graph)):
+		for v in list(graph[n]):
+			isright &= colo[n] != colo[v]
+	print(isright)
+
+
 	# for i in range(len(tiles.tiles)):
 	# 	print(str(tiles.tiles[i]) + "\n\t -> " + str(colo[i]))
 

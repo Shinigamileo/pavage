@@ -123,7 +123,7 @@ class Tile: #-------------------------------------------------------------------
 		       }
 
 
-	def graph_neighborslist(self):
+	def get_graph_neighborslist(self):
 		"""
 		Give the associated graph of the object
 		under the form of a neighbors'list
@@ -156,7 +156,7 @@ class Tile: #-------------------------------------------------------------------
 		│ └─┐ : True   ;   └─┘ : True   ;   └─┼─┐ : False
 		└───┘                                 └─┘
 		"""
-		neighlist = self.graph_neighborslist()
+		neighlist = self.get_graph_neighborslist()
 		group = set()
 		return None
 
@@ -253,6 +253,9 @@ class Tile: #-------------------------------------------------------------------
 	#                                  #
 	####################################
 
+	default_x_dir = "right" # The default directions of the xs and ys when drawing a form
+	default_y_dir = "down"  # My other algorithms considers x->"down" and y->"right"
+
 	def rectangle(h,w,pos=(0,0)):
 		"""Generate a rectangular h*w Tile"""
 		return Tile([(i,j) for i in range(h) for j in range(w)],pos)
@@ -264,7 +267,7 @@ class Tile: #-------------------------------------------------------------------
 
 
 	def from_form(grid,pos=(0,0),
-		          x_dir="down",y_dir="right"):
+		          x_dir="",y_dir=""):
 		"""
 		Use a boolean grid to generate a Tile
 		[[0,0],     ┌─┐ ┏                ┓
@@ -272,18 +275,42 @@ class Tile: #-------------------------------------------------------------------
 		 [1,1], ∙ │ ┌─┘ ┃ (1,0) , (2,-1) ┃
 		 [1]  ]   └─┘   ┗                ┛
 		"""
-		# delete first useless lines only composed of 0s
-		while(not sum(grid[0])):
-			grid = grid[1:]
-		# deducing first point (0,0) (rule : always the left-most point on top)
-		j0 = 0
-		while(not grid[0][j0]):
-			j0+=1
-		# creating all indexes
-		indexes = []
+		x_dir += bool(not x_dir)*Tile.default_x_dir
+		y_dir += bool(not y_dir)*Tile.default_y_dir
+		x_dirs = {"down" :(False, False), 
+		          "up"   :(False, True ),
+		          "right":(True , False),
+		          "left" :(True , True )}
+		y_dirs = {"down" :(True , False), 
+		          "up"   :(True , True ),
+		          "right":(False, False),
+		          "left" :(False, True )}
+		x_swap, x_back = x_dirs[x_dir]
+		y_swap, y_back = y_dirs[y_dir]
+		# creating the list of indexes relative to the top-left corner
+		tlc_indexes = []
+		i_min = float('inf') ; i_max = 0
+		j_min = float('inf') ; j_max = 0
 		for i in range(len(grid)):
 			for j in range(len(grid[i])):
-				indexes += grid[i][j]*[(i,j-j0)]
+				if grid[i][j]:
+					tlc_indexes.append((i,j))
+					i_min = min(i_min,i) ; i_max = max(i_max,i)
+					j_min = min(j_min,j) ; j_max = max(j_max,j)
+		# deducing first point (0,0) (rule : always the smallest x, then y)
+		x0 = (not x_swap)*((not x_back)*i_min + (x_back)*i_max)\
+		    +    (x_swap)*((not x_back)*j_min + (x_back)*j_max)
+		y0 = (not y_swap)*((not y_back)*j_max + (y_back)*j_min)\
+		    +    (y_swap)*((not y_back)*i_max + (y_back)*i_min)
+		for i,j in tlc_indexes:
+			if (not x_swap)*i + (x_swap)*j == x0:
+				y0 = (not y_swap)*((not y_back)*min(y0,j) + (y_back)*max(y0,j))\
+		               + (y_swap)*((not y_back)*min(y0,i) + (y_back)*max(y0,i))
+		# deducing other indexes relatively to point (0,0)
+		indexes = [((1-2*x_back)*((not x_swap)*i+(x_swap)*j-x0),
+			        (1-2*y_back)*((not y_swap)*j+(y_swap)*i-y0))
+		            for i,j in tlc_indexes]
+		# print(indexes)
 		return Tile(indexes,pos)
 
 
@@ -309,16 +336,18 @@ class Tile: #-------------------------------------------------------------------
 		return Tile.rectangle_range(b)
 
 
-	def set_for_pavage(formnrot):
+	def set_for_pavage(formnrot,x_dir="",y_dir=""):
 		"""
 		Generate a list of Tiles given of list of couples with :
 		- their form (in a boolean grid)
 		- if they can be rotated
 		This fuction is often used to generate a list for a Pavage object
 		"""
+		x_dir += bool(not x_dir)*Tile.default_x_dir
+		y_dir += bool(not y_dir)*Tile.default_y_dir
 		s = set()
 		for form,rotate in formnrot:
-			t0 = Tile.from_form(form)
+			t0 = Tile.from_form(form,x_dir=x_dir,y_dir=y_dir)
 			s.add(t0)
 			for a in range(90,360*rotate,90):
 				s.add(t0.copy().rotate(a))
@@ -480,7 +509,7 @@ class Pavage: #-----------------------------------------------------------------
 		return output
 
 
-	def graph_neighborslist(self):
+	def get_graph_neighborslist(self):
 		"""
 		Give the associated graph of the object
 		under the form of a neighbors'list
@@ -527,8 +556,8 @@ class Pavage: #-----------------------------------------------------------------
 				                        roundto)
 
 		count["tiles"] = {k:(tmp_count[k][0],
-			        tmp_count[k][1],
-			        tmp_count[k][2]) for k in tmp_count}
+			                 tmp_count[k][1],
+			                 tmp_count[k][2]) for k in tmp_count}
 		return count
 
 
@@ -541,7 +570,7 @@ class Pavage: #-----------------------------------------------------------------
 		If color_nb < 4, of if some tiles aren't connected,
 		there can be no viable solution.
 		"""
-		return kc.coloration(self.graph_neighborslist(),color_nb)
+		return kc.coloration(self.get_graph_neighborslist(),color_nb)
 
 
 	def fancy_display(self):
