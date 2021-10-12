@@ -694,6 +694,18 @@ class Pavage: #-----------------------------------------------------------------
 				grid[self._tiles[i].x+j[0]][self._tiles[i].y+j[1]]=i
 		return grid
 
+	def tag_tiles(self, nbKcol):
+		"""
+			Retourne les tiles taggués
+		"""
+		grigrid = self.get_numbered_grid()
+		colors = self.get_coloration(nbKcol)
+		json_dict = self.json()
+		for tile in json_dict["tiles"]:
+			x, y = tile["pos"]
+			tile["tag"] = colors[grigrid[tile["pos"][0]][tile["pos"][1]]]
+		return json_dict
+
 
 	######################################
 	#                                    #
