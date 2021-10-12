@@ -502,6 +502,10 @@ class Pavage: #-----------------------------------------------------------------
 	def copy(self):
 		return Pavage(self._xs, self._ys, self._tiles, dotiling = False)
 
+	def repavage(self):
+		#TODO
+		return None
+
 
 	def json(self):
 		output = {}
@@ -581,7 +585,12 @@ class Pavage: #-----------------------------------------------------------------
 	fancy_colors = ["\033[31m","\033[32m", # colors for fancy_display on Unix terminal
 	                "\033[34m","\033[33m", # in order : red, green, blue,
 	                "\033[35m","\033[36m", #            yellow, magenta, cyan
-	                "\033[37m"]            #            white
+	                "\033[37m","\033[30m", #            white, black
+	                "\033[91m","\033[92m", #            and the same 8 in bright
+	                "\033[94m","\033[93m", #            
+	                "\033[95m","\033[96m", #            
+	                "\033[97m","\033[90m", #            
+	               ]
 	fancy_end = "\033[0m"
 	def fancy_display(self,colors=0):
 		"""

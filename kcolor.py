@@ -14,6 +14,7 @@ TODO:
 """
 
 import random as rd
+import npcomplete as np
 from functools import reduce
 
 class Color: #---------------------------------------------------------------------------
@@ -77,23 +78,30 @@ class Color: #------------------------------------------------------------------
 # {\Color}-------------------------------------------------------------------------------
 
 
-class _Kcoloration_state: #--------------------------------------------------------------
-	def __init__(self,color_nb,neighbors,colors, color_count,
+class Kcoloration_state(np.NPcomplete_state): #------------------------------------------
+	def __init__(self,color_nb,neighbors,
+		         colors=[], color_count=[],
 		         back_state=None, back_node=None):
+		node_nb = len(neighbors)
+		colors += bool(not colors)*[Color.gradient(color_nb) for i in range(node_nb)]
+		color_count += bool(not color_count)*[0 for i in range(color_nb)]
 		self._color_nb = color_nb
-		self._node_nb  = len(neighbors)
+		self._node_nb  =  node_nb
 		self._neighbors = [n.copy() for n in neighbors]
 		self._colors = [c.copy() for c in colors]
 		self._color_count = color_count.copy()
-		self._back_state = back_state
-		self._back_node = back_node
+		super().__init__(back_state,back_node)
 
+	@property
+	def _back_node(self):
+		return self._back_choice
 	@property
 	def colors(self):
 		return self._colors.copy()
 	@property
 	def color_count(self):
-		return self._color_count.copy()	
+		return self._color_count.copy()
+	
 
 	def is_solved(self):
 		return reduce( lambda a,b : a and b.is_colored(), self._colors, True  )
@@ -141,7 +149,7 @@ class _Kcoloration_state: #-----------------------------------------------------
 		"""
 		node  = self._random_node()
 		color = self._random_color(node)
-		new_state = _Kcoloration_state(self._color_nb,self._neighbors,
+		new_state = Kcoloration_state(self._color_nb,self._neighbors,
 			                           self._colors, self._color_count,
 			                           back_state=self, back_node=node)
 		new_state._colors[node] = color
@@ -184,33 +192,10 @@ class _Kcoloration_state: #-----------------------------------------------------
 
 
 	def update(self):
-		"""
-		Try to update the possible colors of all nodes as many times as it can.
-		Stops when no change can be made via heuristics.
-		Three possible outcomes :
-		 - returns 0 : Stopped (but still solvable, may need new_state)
-		 - returns 1 : Success (all nodes colored)
-		 - returns 2 : Failure (at least one node empty, may need backtracking)
-		"""
-		anychange = True
-		while anychange:
-			anychange = False
-			for node in range(self._node_nb):
-				anychange |= self.heuristics(node)
-		# print(self._color_count)
-		# print([c.get_color() for c in self._colors])
-		# print("")
-		return self.is_solved() + 2*self.is_unsolvable()
+		return super().update(self._node_nb)
 
 
-	def first(color_nb, neighbors):
-		node_nb = len(neighbors)
-		return _Kcoloration_state(color_nb, neighbors,
-			                      [Color.gradient(color_nb) for i in range( node_nb)],
-			                      [           0             for i in range(color_nb)])
-
-
-# {\_Kcoloration_state}------------------------------------------------------------------
+# {\Kcoloration_state}-------------------------------------------------------------------
 
 
 def coloration(neighbors,color_nb=3):
@@ -220,20 +205,23 @@ def coloration(neighbors,color_nb=3):
 	such that two neighbour nodes don't have the same.
 	This problem is NP-complete and this algorithm uses heuristics and back-tracking.
 	"""
-	state = _Kcoloration_state.first(color_nb, neighbors)
-	end = False
-	while not end:
-		end = state.update()
-		if not end:
-			state = state.new_state()
-			continue
-		elif end == 2:
-			backstate = state.backtrack()
-			del state
-			state = backstate
-			end = 2*(not state)
+	state = Kcoloration_state(color_nb, neighbors)
+	end, state = Kcoloration_state.solving_loop(state)
 	if end == 1:
-		# print(state._color_count)
-		# print([c.get_color() for c in state._colors])
 		return [c.get_color() for c in state.colors]
 	return None
+
+
+def same_coloration(c1,c2):
+	"""
+	Check if the two coloration c1 and c2 have the same group partitions
+	"""
+	if len(c1) != len(c2):
+		return False
+	groups = dict()
+	for i in range(c1):
+		if c1[i] in groups:
+			if groups[c1[i]] != c2[i]:
+				return False
+		groups[c1[i]] = c2[i]
+	return True

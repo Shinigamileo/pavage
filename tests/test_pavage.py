@@ -28,14 +28,14 @@ if __name__=="__main__":
 	Tile.default_x_dir = "down"
 	Tile.default_y_dir = "right"
 
-	X = 7
-	Y = 15
+	X = 20
+	Y = 20
 	TILE_LIMIT = 2
 	AREA_LIMIT = float('inf')
 	FILL = True
 	WEIGHTED = False
 	LESS1X1 = True
-	COLO = 7
+	COLO = 16
 
 	forms = [([[0,1,1,1],
 		 	   [1,1,0,1],
