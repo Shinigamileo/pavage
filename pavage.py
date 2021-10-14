@@ -8,13 +8,10 @@
  * -----------------------------------------------------------------------------*
 """
 
-"""
-TODO :
-- repavage
-"""
-
 import random as rd
 from functools import reduce
+
+import npcomplete as np
 import kcolor as kc
 
 
@@ -493,6 +490,48 @@ class Pavage: #-----------------------------------------------------------------
 				raise StopIteration
 
 
+	####################
+	#                  #
+	#     REPAVAGE     #
+	#                  #
+	####################
+
+	class _Strict_state(np.NProblem_state): #--------------------------------------------
+		def __init__(self, tile_list, tile_newpos,
+					 grid, 
+					 back_state=None, back_choice=None):
+			super().__init__(back_state,back_choice)
+
+		def is_solved(self):
+			return None
+
+		def is_unsolvable(self):
+			return None
+
+		def impose_choice(self,tile,pos):
+			return None
+
+		def get_solution(self):
+			return None
+
+		def loop_heuristics(self,tile):
+			return None
+
+		def last_heuristics(self):
+			return None
+
+		def new_state(self):
+			return None
+
+		def _backtrack_update(self):
+			return None
+
+	# {\Pavage._Strict_state}------------------------------------------------------------
+
+	def repavage(self):
+		state = Pavage._Strict_state(self._tiles)
+		return Pavage._Strict_state.solve(state)
+
 	##################
 	#                #
 	#     OTHERS     #
@@ -502,20 +541,22 @@ class Pavage: #-----------------------------------------------------------------
 	def copy(self):
 		return Pavage(self._xs, self._ys, self._tiles, dotiling = False)
 
-	def repavage(self):
-		#TODO
-		return None
 
-
-	def json(self):
-		output = {}
-		output["size"] = {"xsize" : self._xs,
-						  "ysize"  : self._ys
+	def json(self,color_nb=0):
+		json_dict = {}
+		json_dict["size"] = {"xsize" : self._xs,
+							 "ysize"  : self._ys
 						 }
-		output["tiles"]=[]
+		json_dict["tiles"]=[]
 		for t in self._tiles:
-			output["tiles"].append(t.json())
-		return output
+			json_dict["tiles"].append(t.json())
+		if color_nb:
+			grid = self.get_numbered_grid()
+			colors = self.get_coloration(color_nb)
+			for i in range(self._tiles):
+				tile = self._tile[i]
+				json_dict["tiles"][i]["tag"] = colors[grid[tile.x][tile.y]]
+		return json_dict
 
 
 	def get_graph_neighborslist(self):

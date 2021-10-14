@@ -8,14 +8,10 @@
  * -----------------------------------------------------------------------------*
 """
 
-"""
-TODO:
-- better heuristics
-"""
-
 import random as rd
-import npcomplete as np
 from functools import reduce
+
+import npcomplete as np
 
 class Color: #---------------------------------------------------------------------------
 	def __init__(self,colors):
@@ -78,7 +74,7 @@ class Color: #------------------------------------------------------------------
 # {\Color}-------------------------------------------------------------------------------
 
 
-class Kcoloration_state(np.NPcomplete_state): #------------------------------------------
+class KColoration_state(np.NProblem_state): #--------------------------------------------
 	def __init__(self,color_nb,neighbors,
 		         colors=[], color_count=[],
 		         back_state=None, back_node=None):
@@ -87,7 +83,7 @@ class Kcoloration_state(np.NPcomplete_state): #---------------------------------
 		color_count += bool(not color_count)*[0 for i in range(color_nb)]
 		self._color_nb = color_nb
 		self._node_nb  =  node_nb
-		self._neighbors = [n.copy() for n in neighbors]
+		self._neighbors = neighbors # since neighbors is never changed, no copy needed
 		self._colors = [c.copy() for c in colors]
 		self._color_count = color_count.copy()
 		super().__init__(back_state,back_node)
@@ -108,6 +104,15 @@ class Kcoloration_state(np.NPcomplete_state): #---------------------------------
 
 	def is_unsolvable(self):
 		return reduce( lambda a,b : a or  b.is_empty(),   self._colors, False )
+
+	def impose_choice(self,node,color):
+		self._colors[node] = Color.monochrome(color)
+		self._color_count[color] += 1
+
+
+	def get_solution(self):
+		return [c.get_color() for c in self._colors]
+
 
 	def _random_node(self):
 		# used by new_state, returns the node to select a color from
@@ -149,29 +154,20 @@ class Kcoloration_state(np.NPcomplete_state): #---------------------------------
 		"""
 		node  = self._random_node()
 		color = self._random_color(node)
-		new_state = Kcoloration_state(self._color_nb,self._neighbors,
+		new_state = KColoration_state(self._color_nb,self._neighbors,
 			                           self._colors, self._color_count,
 			                           back_state=self, back_node=node)
 		new_state._colors[node] = color
 		new_state._color_count[color.get_color()] += 1
-		# print("MAKING NEW STATE :")
-		# print("\tnode  : " + str(node))
-		# print("\tcolor : " + str(color.get_color()))
 		return new_state
 
 
-	def backtrack(self):
-		"""
-		Retreat to the previous state and remove the previously chosen color
-		"""
-		# print("BACKTRACKING")
-		if self._back_state:
-			self._back_state._colors[self._back_node].remove_colors(
-			                                            self._colors[self._back_node])
-		return self._back_state
+	def _backtrack_update(self):
+		self._back_state._colors[self._back_node].remove_colors(
+		                                            self._colors[self._back_node])
 
 
-	def heuristics(self,node):
+	def loop_heuristics(self,node):
 		"""
 		For a node, use some heuristics to determine better the possible colors
 		it can take.
@@ -195,7 +191,7 @@ class Kcoloration_state(np.NPcomplete_state): #---------------------------------
 		return super().update(self._node_nb)
 
 
-# {\Kcoloration_state}-------------------------------------------------------------------
+# {\KColoration_state}-------------------------------------------------------------------
 
 
 def coloration(neighbors,color_nb=3):
@@ -205,11 +201,9 @@ def coloration(neighbors,color_nb=3):
 	such that two neighbour nodes don't have the same.
 	This problem is NP-complete and this algorithm uses heuristics and back-tracking.
 	"""
-	state = Kcoloration_state(color_nb, neighbors)
-	end, state = Kcoloration_state.solving_loop(state)
-	if end == 1:
-		return [c.get_color() for c in state.colors]
-	return None
+	state = KColoration_state(color_nb, neighbors)
+	state.impose_choice(rd.randint(0,len(neighbors)-1),rd.randint(0,color_nb-1))
+	return KColoration_state.solve(state)
 
 
 def same_coloration(c1,c2):
