@@ -120,6 +120,7 @@ if __name__=="__main__":
 	# tiles = Pavage.from_json(jsondict)
 
 	tiles = Pavage(X,Y,setile3,fill=FILL,weighted=WEIGHTED,less1x1=LESS1X1)
+	# print(tiles._tiles)
 	tiles.fancy_display(colors=COLO)
 	# print(tiles.json())
 	# print("")

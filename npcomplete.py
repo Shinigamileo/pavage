@@ -56,24 +56,13 @@ class NProblem_state(ABC): #----------------------------------------------------
 			self._backtrack_update()
 			self._back_state._colors[self._back_node].remove_colors(
 			                                            self._colors[self._back_node])
-		return self._back_state
+		return self._back_state		
 
 
-	@abstractmethod
-	def loop_heuristics(self,element):
-		"""
-		For an element, use some heuristics to determine better the possible solutions
-		it can take.
-		Returns True if a change was made.
-		"""
-		...
-	def last_heuristics(self): return False
-
-
-	def update(self,choice_nb):
+	def update(self,heuristicnchoices):
 		"""
 		Try to update the possible elements as many times as it can.
-		Stops when no change can be made via heuristics.
+		Stops when no change can be made via heuristics methods.
 		Three possible outcomes :
 		 - returns 0 : Stopped (but still solvable, may need new_state)
 		 - returns 1 : Success (solved)
@@ -82,9 +71,9 @@ class NProblem_state(ABC): #----------------------------------------------------
 		anychange = True
 		while anychange:
 			anychange = False
-			for choice in range(choice_nb):
-				anychange |= self.loop_heuristics(choice)
-			anychange |= self.last_heuristics()
+			for heuristic, choices in heuristicnchoices:
+				for choice in choices:
+					anychange |= heuristic(choice)
 		return self.is_solved() + 2*self.is_unsolvable()
 
 

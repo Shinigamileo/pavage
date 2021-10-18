@@ -167,7 +167,7 @@ class KColoration_state(np.NProblem_state): #-----------------------------------
 		                                            self._colors[self._back_node])
 
 
-	def loop_heuristics(self,node):
+	def node_heuristics(self,node):
 		"""
 		For a node, use some heuristics to determine better the possible colors
 		it can take.
@@ -188,7 +188,7 @@ class KColoration_state(np.NProblem_state): #-----------------------------------
 
 
 	def update(self):
-		return super().update(self._node_nb)
+		return super().update([(self.node_heuristics, range(self._node_nb))])
 
 
 # {\KColoration_state}-------------------------------------------------------------------
