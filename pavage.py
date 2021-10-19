@@ -22,10 +22,11 @@ class Tile: #-------------------------------------------------------------------
 	(x,y) are the coordinates of its top-left corner.
 	"""
 	def __init__(self, indexes,\
-				 pos=(0,0)):
+				 pos=(0,0), id=""):
 		self.x = pos[0]
 		self.y = pos[1]
 		self._new_indexes(indexes)
+		self._id = id
 
 	def _new_indexes(self,indexes):
 		self._x_min = 0
@@ -54,9 +55,12 @@ class Tile: #-------------------------------------------------------------------
 	def pos(self,value):                	#   pos = (x,y)
 		self.x=value[0]                     #
 		self.y=value[1]                     #   indexes : copy of _indexes
-	@property                           	#
-	def indexes(self):                  	#
-		return self._indexes.copy()         #
+	@property                           	#	
+	def indexes(self):                  	#	
+		return self._indexes.copy()         #	
+	@property								#	
+	def id(self):							#	
+		return self._id						#	
 	@property                           	#   tlc (top-left corner)
 	def tlc(self):                      	#   brc (bottom-right corner)
 		return (self._x_min,self._y_min)    #       their relative position
@@ -100,7 +104,8 @@ class Tile: #-------------------------------------------------------------------
 
 
 	def __hash__(self):
-		return hash((self.x,self.y) + tuple(set(self._indexes)))
+
+		return hash((self.id,self.x,self.y) + tuple(set(self._indexes)))
 
 
 	##################
@@ -228,7 +233,7 @@ class Tile: #-------------------------------------------------------------------
 		return [(x - self._x_min , y - self._y_min) for x,y in self._indexes]
 
 
-	def get_key(self):
+	def create_id(self):
 		"""
 		Create a key associated to the type of tile.
 		Used for dictionnaries.
@@ -239,7 +244,8 @@ class Tile: #-------------------------------------------------------------------
 			for c in l:
 				key += str(c)
 			key += "\n"
-		return key[:-1]
+		self._id = key[:-1]
+		return self._id
 
 
 	def fancy_display(self):
@@ -370,7 +376,7 @@ class Grid: #-------------------------------------------------------------------
 		if free_cells[0]:
 			self._free_cells = set(range(xsize*ysize))
 		else:
-			self._free_cells = set(free_cells[1])
+			self._free_cells = free_cells[1].copy()
 
 	@property
 	def xsize(self):
@@ -384,12 +390,32 @@ class Grid: #-------------------------------------------------------------------
 	@property
 	def ys(self):
 		return self._ys
+	@property
+	def free_cells(self):
+		return self._free_cells.copy()
+	
+	def __iter__(self):            # used to iter the indexes of the tile
+		return Grid.Iterator(self) # for i in tile -> for i in tile._indexes
+	class Iterator:
+		def __init__(self,g):
+			self._free_cells = list(g._free_cells)
+			self._index = 0
+		def __next__(self):
+			try:
+				res = self._free_cells[self._index]
+				self._index+=1
+				return res
+			except (IndexError):
+				raise StopIteration
 
 	def copy(self):
 		return Grid(self._xs,self._ys,(False,self._free_cells))
 
 	def has_empty_cells(self):
 		return bool(self._free_cells)
+
+	def is_full(self):
+		return not self.has_empty_cells()
 
 	def _pos2cell(self,pos):
 		return pos[0]*self._ys+pos[1]
@@ -403,6 +429,11 @@ class Grid: #-------------------------------------------------------------------
 	def cell_random(self):
 		return self._cell2pos(rd.choice(list(self._free_cells)))
 
+	def tile_cell_coverture(self,tile,pos=()):
+		pos += (not bool(pos))*tile.pos
+		return set(map(lambda a: self._pos2cell(a),tile.get_put_indexes()))
+
+
 	def tile_can_put(self,tile,pos):
 		"""
 		Check if the Tile tile can be put at pos pos
@@ -414,13 +445,14 @@ class Grid: #-------------------------------------------------------------------
 			and (tile.tlc[1]+y>=0) and (tile.brc[1]+y<self._ys) \
 			and reduce(lambda a,b : a&self.cell_is_empty((x+b[0],y+b[1])),tile,True)
 
-	def tile_put(self,tile,pos):
-		tile.pos = pos
-		self._free_cells -= set(map(lambda a: self._pos2cell(a),tile.get_put_indexes()))
+
+	def tile_put(self,tile,pos,replace=True):
+		tile.pos = replace*pos + (1-replace)*tile.pos
+		self._free_cells -= self.tile_cell_coverture(tile,pos)
 
 
 	def tile_unput(self,tile):
-		self._free_cells += set(map(lambda a: self._pos2cell(a),tile.get_put_indexes()))
+		self._free_cells |= self.tile_cell_coverture(tile,pos)
 
 
 # {\Grid}--------------------------------------------------------------------------------
@@ -562,57 +594,92 @@ class Pavage: #-----------------------------------------------------------------
 	####################
 
 	class _Strict_state(np.NProblem_state): #--------------------------------------------
-		def __init__(self, tile_list, tiles_choices, cells_choices,
-					 tile_newpos=[],
+		def __init__(self, tile_list, tiles_choices, grid, tiles_newpos,
 					 back_state=None, back_choice=None):
 			self._tile_nb = len(tile_list)
-			tile_newpos += bool(tile_newpos)*[None for i in range(self._tile_nb)]
 			self._tile_list = tile_list
 			self._tiles_choices = {t:tiles_choices[t].copy() for t in tiles_choices}
-			self._cells_choices = {c:cells_choices[c].copy() for c in cells_choices}
-			self._tile_newpos = tile_newpos.copy()
+			# self._cells_choices = {c:cells_choices[t].copy() for c in cells_choices}
+			self._grid = grid.copy()
+			self._tiles_newpos = tiles_newpos.copy()
 			super().__init__(back_state,back_choice)
 
 		def is_solved(self):
-			return not self._cells_choices and not self._tiles_choices
+			return self._grid.is_full()
 
 		def is_unsolvable(self):
-			return reduce( lambda a,b : a or not b, self._tiles_choices, False ) \
-				or reduce( lambda a,b : a or not b, self._cells_choices, False )
+			return reduce( lambda a,b : a or not self._tiles_choices[b],
+							self._tiles_choices, False )
 
+		def _choices_update(self):
+			for tile in self._tiles_choices:
+				for pos in list(self._tiles_choices[tile]):
+					if not self._grid.tile_can_put(tile,pos):
+						self._tiles_choices[tile].remove(pos)
+			# for cell in self._cells_choices:
+			# 	pos = self._grid._cell2pos(cell)
+			# 	for tile in list(self._cells_choices[pos]):
+			# 		if not self._grid.tile_can_put(tile,pos):
+			# 			self._cells_choices[cell].remove(tile)
 
-		def _put_tile(self,tile,pos):
-			self._tile_newpos[tile] = pos
-			# for tile in self._tiles_choices:
-			# 	choices -= 
 
 		def impose_choice(self,tile,pos):
-			self._tile_newpos[tile] = pos
+			self._tiles_newpos[tile] = pos
+			self._grid.tile_put(tile,pos,replace=False)
+			self._tiles_choices.pop(tile)
+			self._choices_update()
+
 
 		def get_solution(self):
-			return self._tile_newpos
+			return self._tiles_newpos
+
+		def _random_tile(self):
+			chosable_tiles = []
+			min_pos_nb = float('inf')
+			for tile in self._tiles_choices:
+				tile_pos_nb = len(self._tiles_choices[tile])
+				chosable_tiles = (min_pos_nb <= tile_pos_nb)*chosable_tiles \
+				                + (min_pos_nb >= tile_pos_nb)*[tile]
+				min_pos_nb = min( min_pos_nb , tile_pos_nb )
+			return rd.choice(chosable_tiles)
+
+
+		def _random_pos(self,tile):
+			return rd.choice(list(self._tiles_choices[tile]))
 
 		def new_state(self):
-			return None
+			tile = self._random_tile()
+			pos  = self._random_pos(tile)
+			new_state = Pavage._Strict_state(self._tile_list, self._tiles_choices,
+				                        	 self._grid, self._tile_newpos,
+				                        	 back_state=self, back_node=tile)
+			self.impose_choice(tile,pos)
+			return new_state
 
 		def _backtrack_update(self):
-			return None
+			self._back_state._tiles_choices[self._back_choice].remove(
+				self._tiles_newpos[self._back_choice])
 
 		def tile_heuristics(self,tile):
-			return None
+			if len(self._tiles_choices[tile])==1:
+				self.impose_choice(tile,self._tiles_choices[tile].pop())
+				return True
+			return False
 
 		def cell_heuristics(self,cell):
-			return None
+			return False
 
 		def update(self):
-			return super().update([(self.tile_heuristics, range(self._tile_nb)),
-								   (self.cell_heuristics, self._cells)
+			return super().update([(self.tile_heuristics, self._tiles_choices),
+								   (self.cell_heuristics, self._grid)
 								  ])
 
 
 		def first(xsize,ysize,tiles):
-			
-			return Pavage._Strict_state(tiles)
+			tiles_choices = None
+			grid = Grid(xsize,ysize)
+			tiles_newpos = [None for i in range(self._tile_nb)]
+			return Pavage._Strict_state(tiles, tiles_choices, grid, tiles_newpos)
 
 
 	# {\Pavage._Strict_state}------------------------------------------------------------
@@ -624,6 +691,7 @@ class Pavage: #-----------------------------------------------------------------
 		for i in range(len(self.tiles)):
 			newtiles[i].pos = newpos[i]
 		return Pavage(self.xs, self.ys, newtiles, dotiling=False)
+
 
 	##################
 	#                #
