@@ -755,7 +755,7 @@ class Pavage: #-----------------------------------------------------------------
 		count = {"Total":[l,float(100),float(100)]}
 		tmp_count = {}
 		for t in self._tiles:
-			key = t.get_key()
+			key = t.create_id()
 			_ = key.split("\n")
 			key = "%sx%s" % (len(_[0]), len(_))
 			if key not in tmp_count:
